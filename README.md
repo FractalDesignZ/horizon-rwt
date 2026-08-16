@@ -10,7 +10,7 @@ No field book is shipped. Generate test wells is a dry-run only.
 
 - **Import** — multi-file / multi-object ingest, column mapper
 - **Dashboard / Fence / Compare** — pad geometry, stratigraphic hang, pair transfer
-- **Predict / Steer** — Gate 3 residual law, geodesic advisory
+- **Predict / Steer / Train** — Gate 3 residual law, geodesic advisory, from-scratch net + genetic loop on a live world grid (holdout, not a memorized path)
 - **Quality / Gates / Transfer** — correlation quality, acceptance checks, neighbor send
 - **Drilling** — WOB / RPM / TRQ / ROP regimes
 - **Audit / History** — certificate ledger, saved runs

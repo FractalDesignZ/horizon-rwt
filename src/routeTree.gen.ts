@@ -22,6 +22,7 @@ import { Route as RogueRouteImport } from './routes/rogue'
 import { Route as SheafRouteImport } from './routes/sheaf'
 import { Route as SteerRouteImport } from './routes/steer'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as TrainRouteImport } from './routes/train'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as WellIdRouteImport } from './routes/well.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -91,6 +92,11 @@ const StudioRoute = StudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrainRoute = TrainRouteImport.update({
+  id: '/train',
+  path: '/train',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransferRoute = TransferRouteImport.update({
   id: '/transfer',
   path: '/transfer',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/sheaf': typeof SheafRoute
   '/steer': typeof SteerRoute
   '/studio': typeof StudioRoute
+  '/train': typeof TrainRoute
   '/transfer': typeof TransferRoute
   '/well/$id': typeof WellIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/sheaf': typeof SheafRoute
   '/steer': typeof SteerRoute
   '/studio': typeof StudioRoute
+  '/train': typeof TrainRoute
   '/transfer': typeof TransferRoute
   '/well/$id': typeof WellIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/sheaf': typeof SheafRoute
   '/steer': typeof SteerRoute
   '/studio': typeof StudioRoute
+  '/train': typeof TrainRoute
   '/transfer': typeof TransferRoute
   '/well/$id': typeof WellIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/sheaf'
     | '/steer'
     | '/studio'
+    | '/train'
     | '/transfer'
     | '/well/$id'
     | '/api/auth/$'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/sheaf'
     | '/steer'
     | '/studio'
+    | '/train'
     | '/transfer'
     | '/well/$id'
     | '/api/auth/$'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/sheaf'
     | '/steer'
     | '/studio'
+    | '/train'
     | '/transfer'
     | '/well/$id'
     | '/api/auth/$'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   SheafRoute: typeof SheafRoute
   SteerRoute: typeof SteerRoute
   StudioRoute: typeof StudioRoute
+  TrainRoute: typeof TrainRoute
   TransferRoute: typeof TransferRoute
   WellIdRoute: typeof WellIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/train': {
+      id: '/train'
+      path: '/train'
+      fullPath: '/train'
+      preLoaderRoute: typeof TrainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/transfer': {
       id: '/transfer'
       path: '/transfer'
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   SheafRoute: SheafRoute,
   SteerRoute: SteerRoute,
   StudioRoute: StudioRoute,
+  TrainRoute: TrainRoute,
   TransferRoute: TransferRoute,
   WellIdRoute: WellIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

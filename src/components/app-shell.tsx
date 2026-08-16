@@ -13,6 +13,7 @@ const NAV = [
   { to: "/locks", label: "Gates" },
   { to: "/transfer", label: "Transfer" },
   { to: "/steer", label: "Steer" },
+  { to: "/train", label: "Train" },
   { to: "/fence", label: "Fence" },
   { to: "/compare", label: "Compare" },
   { to: "/rogue", label: "Drilling" },
