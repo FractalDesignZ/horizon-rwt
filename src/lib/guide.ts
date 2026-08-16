@@ -180,6 +180,17 @@ export const GUIDE: GuideArticle[] = [
     also: "value-warped geodesic, corridor",
   },
   {
+    id: "train",
+    title: "Train",
+    blurb: "A small net reads the live grid and votes a steer call.",
+    body: [
+      "The world grid is the well at the bit: zone, threat, labeled floor, bit. The net is weights and a bias — no API, no pretrained model.",
+      "A population breeds: score, keep the winners, mix their weights, mutate a few. Fitness uses labeled stations. Holdout is the last 30% and is not used to pick parents.",
+      "If holdout stays close to train, the net is reading state, not memorizing a path. Compare the call to the rule-based steer. Residual still has to beat baseline before it ships.",
+    ],
+    also: "genetic algorithm, holdout, world grid",
+  },
+  {
     id: "fence",
     title: "Fence",
     blurb: "Pad cross-section. Align on TVT or MD.",

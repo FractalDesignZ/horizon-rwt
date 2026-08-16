@@ -5,6 +5,7 @@ import { synthesizePad } from "@/lib/rwt/synth";
 import { wrapIngest, type IngestBundle } from "@/lib/rwt/wrapper";
 import type { PadField, PipelineResult, Well } from "@/lib/rwt/types";
 import { runPipeline } from "@/lib/rwt/pipeline";
+import { evolveNet, type EvolveReport, type GenStat } from "@/lib/rwt/evolve";
 
 let playTimer: number | null = null;
 
@@ -87,6 +88,10 @@ interface HorizonState {
   clearPad: () => void;
   removeWell: (id: string) => void;
   rehydrate: () => void;
+  evolve: (id?: string) => void;
+  evolves: Record<string, EvolveReport>;
+  evolving: boolean;
+  evolveTick: GenStat | null;
   play: () => void;
   stopPlay: () => void;
 }
@@ -130,6 +135,9 @@ export const useHorizon = create<HorizonState>((set, get) => {
     lastBundle: null,
     ingestStatus: "",
     hydrated: false,
+    evolves: {},
+    evolving: false,
+    evolveTick: null,
     setWell: (id) => {
       const s = get();
       const w = s.pad.wells.find((x) => x.id === id);
@@ -313,6 +321,8 @@ export const useHorizon = create<HorizonState>((set, get) => {
         ingestError: null,
         lastBundle: null,
         ingestStatus: "",
+        evolves: {},
+        evolveTick: null,
       });
     },
     removeWell: (id) => {
@@ -332,6 +342,7 @@ export const useHorizon = create<HorizonState>((set, get) => {
           activeWellId: next,
           targetWellId: wells.find((w) => w.id !== next)?.id ?? next,
           results: rest,
+          evolves: Object.fromEntries(Object.entries(s.evolves).filter(([k]) => k !== id)),
         };
       });
     },
@@ -356,6 +367,33 @@ export const useHorizon = create<HorizonState>((set, get) => {
         hydrated: true,
         results: {},
       });
+    },
+    evolve: (id) => {
+      const state = get();
+      const wid = id ?? state.activeWellId;
+      const result = state.results[wid];
+      if (!result || state.evolving) return;
+      set({ evolving: true, evolveTick: null });
+      window.setTimeout(() => {
+        try {
+          const report = evolveNet(result, {
+            pop: 20,
+            gens: 16,
+            mutation: 0.05,
+            seed: 11 + wid.length,
+            station: get().station,
+            onGen: (stat) => set({ evolveTick: stat }),
+          });
+          set((s) => ({
+            evolves: { ...s.evolves, [wid]: report },
+            evolving: false,
+            evolveTick: report.history[report.history.length - 1] ?? s.evolveTick,
+          }));
+        } catch (err) {
+          console.error(err);
+          set({ evolving: false });
+        }
+      }, 16);
     },
     play: () => {
       if (get().playing) {

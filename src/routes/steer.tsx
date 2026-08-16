@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { applyWhatIf } from "@/lib/rwt/cycle";
+import { adviseAt } from "@/lib/rwt/evolve";
 import { computeSteer } from "@/lib/rwt/steer";
 import { useHorizon } from "@/lib/store";
 
@@ -25,6 +26,7 @@ function SteerPage() {
   const runWell = useHorizon((s) => s.runWell);
   const running = useHorizon((s) => s.running);
   const whatIf = useHorizon((s) => s.whatIf);
+  const evolves = useHorizon((s) => s.evolves);
 
   const well = pad.wells.find((w) => w.id === active);
   const raw = results[active];
@@ -44,6 +46,7 @@ function SteerPage() {
   if (!well) return <EmptyPad title="Steer needs a well" />;
 
   const frame = result?.probability[station];
+  const evo = result && evolves[active] ? adviseAt(evolves[active]!, result, station) : null;
 
   return (
     <AppShell>
@@ -70,12 +73,9 @@ function SteerPage() {
             <Button variant="secondary" onClick={() => runWell(active)} disabled={running}>
               {running ? "Running…" : "Run"}
             </Button>
-            <Link
-              to="/transfer"
-              className="inline-flex h-10 items-center rounded-sm border border-border px-3 text-sm text-muted no-underline hover:text-fg"
-            >
-              Transfer
-            </Link>
+            <Button variant="secondary" asChild>
+              <Link to="/train">Train</Link>
+            </Button>
           </div>
         </div>
 
@@ -85,7 +85,10 @@ function SteerPage() {
               <div className="rounded-xl border border-border bg-surface p-4">
                 <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Advisory</p>
                 <p className="mt-1 font-display text-4xl tracking-tight">{steer.advisory}</p>
-                <p className="mt-1 text-xs text-subtle">{steer.reason}</p>
+                <p className="mt-1 text-xs text-subtle">
+                  {steer.reason}
+                  {evo ? ` · trained ${evo.action}` : ""}
+                </p>
               </div>
               <Metric label="Bit MD" value={steer.bitMd.toFixed(0)} hint={`TVT ${steer.bitTvt.toFixed(1)}`} />
               <Metric
