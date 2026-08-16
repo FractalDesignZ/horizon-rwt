@@ -11,7 +11,9 @@ export function ModeRail({ modes }: { modes: ModeStatus[] }) {
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="font-mono text-[11px] text-subtle">{m.id}</span>
-            <Badge variant={m.status === "ok" ? "ok" : "warn"}>{m.status}</Badge>
+            <Badge variant={m.status === "ok" ? "ok" : "warn"}>
+              {m.status === "ok" ? "pass" : "warn"}
+            </Badge>
           </div>
           <p className="font-display text-base text-fg">{m.name}</p>
           <p className="mt-1 text-xs text-muted">{m.role}</p>

@@ -1,4 +1,5 @@
 import { clamp, rmse, solveSymmetric } from "./math";
+import { floorLabel } from "@/lib/plain";
 import {
   MAX_TVT_DEV,
   type Gate3Result,
@@ -119,12 +120,12 @@ export function computeResidual(
   // Pure floors only — PF/stack saw heel labels, so they are not Gate3 competitors
   const pureNames = ["last_known", "prior_flat", "prior_local_dip"] as const;
   let bestFloor = Infinity;
-  let bestFloorName = "last_known";
+  let bestFloorName = floorLabel("last_known");
   for (const k of pureNames) {
     const v = floors[k]!;
     if (Number.isFinite(v) && v < bestFloor) {
       bestFloor = v;
-      bestFloorName = k;
+      bestFloorName = floorLabel(k);
     }
   }
   const accept =

@@ -24,8 +24,8 @@ export function ParticleCloud({
   return (
     <div>
       <div className="mb-2 flex items-end justify-between">
-        <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Particle stalk</p>
-        <p className="font-mono text-xs tabular-nums text-subtle">{cloud.length} walkers</p>
+        <p className="text-[11px] uppercase tracking-[0.12em] text-muted">The cloud</p>
+        <p className="font-mono text-xs tabular-nums text-subtle">{cloud.length} guesses</p>
       </div>
       <div className="flex h-24 items-end gap-px">
         {counts.map((c, i) => {

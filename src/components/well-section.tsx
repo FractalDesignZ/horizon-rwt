@@ -14,6 +14,11 @@ export function WellSection() {
       tvd: -s.z,
     }));
   });
+  if (!samples.length) {
+    return (
+      <div className="grid h-64 place-items-center text-sm text-muted">No wells loaded.</div>
+    );
+  }
   const deps = samples.map((s) => s.dep);
   const tvds = samples.map((s) => s.tvd);
   const minD = 0;

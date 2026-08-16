@@ -50,7 +50,7 @@ export function HorizonStrip({
   };
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" onClick={handle} role="img" aria-label="Horizon strip">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" onClick={handle} role="img" aria-label="Bounce along the hole">
       <rect width={W} height={H} fill="#131411" />
       <rect x={left} y={4} width={inner} height={H - 8} fill="#0b0c0a" />
       {ps >= 0 && (

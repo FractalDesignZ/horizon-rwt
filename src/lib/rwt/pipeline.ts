@@ -16,8 +16,8 @@ export function runPipeline(well: Well, pad: Well[]): PipelineResult {
   const sheaf = computeSheaf(well, geometry, priors);
   const selected = residual.useResidual ? residual.served : priors.priorStack;
   const selectedName = residual.useResidual
-    ? "residual + prior_stack"
-    : `pure ${residual.gate3.bestFloorName}`;
+    ? "residual + stack"
+    : residual.gate3.bestFloorName;
   const probability = encodeProbability(well, priors, selected, sheaf);
 
   const y: number[] = [];
@@ -69,116 +69,114 @@ export function runPipeline(well: Well, pad: Well[]): PipelineResult {
 
   const modes: ModeStatus[] = [
     {
-      id: "M0",
-      name: "RESTRICT",
-      role: "TVT RMSE · heel/toe mask · no form leak",
+      id: "1",
+      name: "Bounds",
+      role: "Unlabeled interval",
       status: "ok",
-      note: `${well.stations.filter((s) => s.isPredict).length} toe stations`,
+      note: `${well.stations.filter((s) => s.isPredict).length} stations unlabeled`,
     },
     {
-      id: "M1",
-      name: "GEOM",
-      role: "Open-curve Bishop · curvature · E_ref",
+      id: "2",
+      name: "Geometry",
+      role: "Wellpath",
       status: "ok",
-      note: `κ̅ ${geometry.meanCurv.toFixed(4)} · holonomy ${geometry.cumTwist.toFixed(3)}`,
+      note: `twist ${geometry.cumTwist.toFixed(2)}`,
     },
     {
-      id: "M2",
-      name: "PRIOR",
-      role: "Last-known · flat C−Z · MD slope ≤ 0.008",
+      id: "3",
+      name: "Prior",
+      role: "Last known TVT",
       status: "ok",
-      note: `last ${priors.lastKnown.toFixed(2)} ft`,
+      note: `last ${priors.lastKnown.toFixed(1)} ft`,
     },
     {
-      id: "M3",
-      name: "MATCH",
-      role: "GR@TVT book · NCC · particle stalk",
+      id: "4",
+      name: "Correlation",
+      role: "GR vs type well",
       status: "ok",
-      note: `PF conf ${meanFinite(priors.pfConf).toFixed(2)}`,
+      note: `particles ${(meanFinite(priors.pfConf) * 100).toFixed(0)}`,
     },
     {
-      id: "M4",
-      name: "MIDDLE_OUT",
-      role: "Known heel · masked toe",
+      id: "5",
+      name: "Split",
+      role: "Labeled / unlabeled",
       status: "ok",
-      note: `PS @ MD ${priors.psMd.toFixed(0)}`,
+      note: `split at ${priors.psMd.toFixed(0)}`,
     },
     {
-      id: "M5",
-      name: "RESIDUAL",
-      role: "Ridge Δ on prior_stack · Gate3",
+      id: "6",
+      name: "Residual",
+      role: "Accept if beats baseline",
       status: residual.useResidual ? "ok" : "warn",
       note: residual.useResidual
-        ? `ACCEPT · holdout ${residual.gate3.residualRmse.toFixed(2)}`
-        : `REJECT · floor ${residual.gate3.bestFloorName} ${residual.gate3.bestFloor.toFixed(2)}`,
+        ? `clears baseline · ${residual.gate3.residualRmse.toFixed(2)}`
+        : `baseline held · ${residual.gate3.bestFloorName}`,
     },
     {
-      id: "M6",
-      name: "CERTIFY",
-      role: "Floors · provenance · serve law",
+      id: "7",
+      name: "Score",
+      role: "Toe RMSE",
       status: "ok",
-      note: toeRmse != null ? `toe RMSE ${toeRmse.toFixed(2)} ft` : "no hidden labels",
+      note: toeRmse != null ? `RMSE ${toeRmse.toFixed(2)} ft` : "no hidden truth",
     },
     {
-      id: "M7",
-      name: "HORIZON",
-      role: "Smith |Γ| · recoverability collapse",
+      id: "8",
+      name: "Alert",
+      role: "Lost lock",
       status: onset != null ? "warn" : "ok",
       note:
         onset != null
-          ? `onset MD ${well.stations[onset]!.md.toFixed(0)} · |Γ| ${sheaf.smithPath[onset]!.mag.toFixed(2)}`
-          : "recoverable along toe",
+          ? `alert at ${well.stations[onset]!.md.toFixed(0)}`
+          : "still locked on the toe",
     },
     {
-      id: "M8",
-      name: "LOCKS",
-      role: "Tumblers · key fit · pad sheaf",
+      id: "9",
+      name: "Gates",
+      role: "Six acceptance checks",
       status: locks.fireReady ? "ok" : "warn",
-      note: `${locks.turns}/6 pins · fit ${(locks.keyFit * 100).toFixed(0)}`,
+      note: `${locks.turns}/6 pass · ${(locks.keyFit * 100).toFixed(0)} score`,
     },
     {
-      id: "M9",
-      name: "TRANSFER",
-      role: "CTS · channel stalks · pad transport",
+      id: "10",
+      name: "Transfer",
+      role: "Neighbor posterior",
       status: cts.schematism ? "ok" : "warn",
-      note: cts.schematism
-        ? `Ct coherent · Φ ${cts.phi < 1e-3 ? cts.phi.toExponential(1) : cts.phi.toFixed(3)}`
-        : `schematism · contact ${cts.contact.toFixed(2)}`,
+      note: cts.schematism ? "contact ok" : "contact weak",
     },
     {
-      id: "M10",
-      name: "STEER",
-      role: "Book target · geodesic · advisory",
+      id: "11",
+      name: "Advisory",
+      role: "HOLD / BUILD / DROP / CUT",
       status: steer.advisory === "CUT" ? "warn" : "ok",
       note: `${steer.advisory} · ${steer.reason}`,
     },
     {
-      id: "M11",
-      name: "FENCE",
-      role: "Markers · hang · pad brief",
+      id: "12",
+      name: "Fence",
+      role: "Pad cross-section",
       status: "ok",
-      note: `${markers.length} book markers`,
+      note: `${markers.length} markers on type well`,
     },
     {
-      id: "M12",
-      name: "COMPARE",
-      role: "Pair delta · aligned MD · transfer",
+      id: "13",
+      name: "Compare",
+      role: "Aligned wells",
       status: "ok",
-      note: "neighbor on fractional MD",
+      note: "aligned on MD",
     },
     {
-      id: "M13",
-      name: "ROGUE",
-      role: "Mechanics · TDA · MoE · axioms",
+      id: "14",
+      name: "Drilling",
+      role: "WOB RPM TRQ ROP",
       status: "ok",
-      note: "WOB/RPM/TRQ/ROP on the manifold",
+      note: "regime + setpoints",
     },
     {
-      id: "M14",
-      name: "STUDIO",
-      role: "Claim ledger · sheaf gate · typed time",
+      id: "15",
+      name: "Audit",
+      role: "Claim ledger",
       status: "ok",
-      note: "connection until 2-cells compose",
+      note: "pairwise until cycles close",
     },
   ];
 

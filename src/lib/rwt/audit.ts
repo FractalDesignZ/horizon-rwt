@@ -96,7 +96,7 @@ export function sheafGate(pad: PadField, results: Record<string, PipelineResult>
       triangles: 0,
       maxCycleResidual: 0,
       compatible: false,
-      reason: "No 2-cells. Pairwise transports stay a connection. H¹ stays closed.",
+      reason: "No closed loops. Pairwise links only. Not a pad-wide field.",
     };
   }
   const compatible = maxRes < 0.18;
@@ -106,8 +106,8 @@ export function sheafGate(pad: PadField, results: Record<string, PipelineResult>
     maxCycleResidual: maxRes,
     compatible,
     reason: compatible
-      ? `${triangles} triangles · max |Π−I| ${maxRes.toFixed(3)} · restriction maps compose`
-      : `${triangles} triangles · cycle residual ${maxRes.toFixed(3)} fails functoriality · connection only`,
+      ? `${triangles} cycles close · residual ${maxRes.toFixed(3)} · pad field allowed`
+      : `${triangles} cycles · residual ${maxRes.toFixed(3)} · links do not close`,
   };
 }
 
@@ -127,9 +127,9 @@ function holonomyNull(twists: number[], B = 47): NullReport {
     if (v >= obs - 1e-12) ge += 1;
   }
   return {
-    name: "Edge-twist shuffle",
+    name: "Shuffle neighbor twists",
     justification:
-      "Diagnostic only. Permutes observed twists; preserves the multiset, destroys cycle incidence. Not a GUE null.",
+      "A null test, not a proof. Same twists, random order, so cycles break. Not a physics test.",
     B,
     observed: obs,
     pExact: (1 + ge) / (B + 1),
@@ -152,28 +152,28 @@ export function compileAudit(
 
   claims.push({
     id: "smith-def",
-    statement: "Γ = (z−1)/(z+1) is the Smith chart of the normalized mismatch.",
+    statement: "|Γ| is the chosen drawing of live-vs-type mismatch.",
     klass: "identity",
     status: "pass",
-    note: "Definition. Not a discovery.",
+    note: "A definition. Not a discovery.",
   });
   claims.push({
     id: "lap-psd",
-    statement: "The assembled connection Laplacian is positive semidefinite.",
+    statement: "Neighbor-link eigenvalues are non-negative.",
     klass: "certificate",
     status: sh.eigenvalues.every((v) => v > -1e-6) ? "pass" : "fail",
-    note: `λmin ${ (sh.eigenvalues[0] ?? 0).toFixed(4) }`,
+    note: `lowest ${(sh.eigenvalues[0] ?? 0).toFixed(4)}`,
   });
   claims.push({
     id: "holonomy",
-    statement: "Pad cycle product is discrete connection holonomy.",
+    statement: "Pad holonomy is the sum of edge twists, not a force.",
     klass: "certificate",
     status: "pass",
-    note: `Σ twist ${sh.holonomy.toFixed(3)} · not spacetime curvature`,
+    note: `holonomy ${sh.holonomy.toFixed(3)}`,
   });
   claims.push({
     id: "higher-sheaf",
-    statement: "H¹ of a cellular sheaf is available.",
+    statement: "A pad-wide field is allowed.",
     klass: "certificate",
     status: gate.compatible ? "pass" : "excluded",
     note: gate.reason,
@@ -182,33 +182,33 @@ export function compileAudit(
   if (r) {
     const g3 = r.residual.gate3;
     claims.push({
-      id: "gate3",
-      statement: "Toe residual may ship only if it beats every pure-prior floor.",
+      id: "floor",
+      statement: "Residual ships only if it beats every baseline.",
       klass: "certificate",
       status: g3.accept ? "pass" : "fail",
       note: g3.accept
-        ? `RMSE ${r.toeRmse?.toFixed(2) ?? "—"} < floor ${g3.bestFloor.toFixed(2)}`
-        : `blocked by ${g3.bestFloorName}`,
+        ? `RMSE ${r.toeRmse?.toFixed(2) ?? "—"} beats ${g3.bestFloor.toFixed(2)}`
+        : `baseline held · ${g3.bestFloorName}`,
     });
     claims.push({
       id: "rmse",
-      statement: "Certified toe RMSE is an empirical score on this pad, this book.",
+      statement: "RMSE is toe TVT error on this pad, this type well.",
       klass: "empirical",
       status: r.toeRmse != null ? "hold" : "fail",
-      note: r.toeRmse != null ? r.toeRmse.toFixed(2) : "no truth on toe",
+      note: r.toeRmse != null ? r.toeRmse.toFixed(2) : "no truth on the toe",
     });
     const onset = r.sheaf.horizonOnset;
     claims.push({
       id: "horizon",
-      statement: "Horizon onset is an operational flag (|Γ| and recoverability), not a formation top.",
+      statement: "Lost lock is a flag that GR quit lining up. It is not a top.",
       klass: "empirical",
       status: "hold",
-      note: onset != null ? `MD ${r.well.stations[onset]!.md.toFixed(0)}` : "no onset on this well",
+      note: onset != null ? `at ${r.well.stations[onset]!.md.toFixed(0)}` : "still locked",
     });
     const steer = computeSteer(r, Math.max(0, r.well.stations.findIndex((s) => s.isPredict)));
     claims.push({
       id: "steer",
-      statement: `${steer.advisory} is an advisory from book window + geodesic, not a survey.`,
+      statement: `${steer.advisory} is an advisory from the type well and the path, not a survey.`,
       klass: "empirical",
       status: "hold",
       note: steer.reason,
@@ -216,51 +216,52 @@ export function compileAudit(
     const cts = computeCts(r, 0);
     claims.push({
       id: "cts",
-      statement: "CTS schematism is a discrete contact test, not a physical field.",
+      statement: "Contact is whether the neighbor still receives this well.",
       klass: "empirical",
       status: cts.schematism ? "pass" : "hold",
-      note: `Φ ${cts.phi < 1e-3 ? cts.phi.toExponential(1) : cts.phi.toFixed(3)}`,
+      note: cts.schematism ? "contact ok" : "contact weak",
     });
     const locks = computeLocks(r, 0);
     claims.push({
       id: "locks",
-      statement: "Key fit is a tumbler score, not an identity.",
+      statement: "Score is how many of the six gates pass. It is a score, not a law.",
       klass: "empirical",
       status: locks.fireReady ? "pass" : "hold",
       note: `${locks.turns}/6 · ${(locks.keyFit * 100).toFixed(0)}`,
     });
     const rogue = computeRogue(r.well);
     const mid = rogue.frames[Math.floor(rogue.frames.length * 0.55)]!;
+    const names = { normal: "Normal", "stick-slip": "Stick-slip", whirl: "Whirl", bounce: "Bit bounce" } as const;
     claims.push({
       id: "rogue",
-      statement: `Regime “${mid.regime}” is a Betti+feature classification of WOB/RPM/TRQ/ROP.`,
+      statement: `“${names[mid.regime]}” is the name of the WOB / RPM / TRQ / ROP shape.`,
       klass: "empirical",
       status: "hold",
-      note: `${(mid.confidence * 100).toFixed(0)}% · not a downhole sensor vote`,
+      note: `${(mid.confidence * 100).toFixed(0)}% · not a downhole vote`,
     });
   } else {
     claims.push({
       id: "run",
-      statement: "No pipeline result for the selected well.",
+      statement: "This well has not been run.",
       klass: "empirical",
       status: "fail",
-      note: "Run the well first.",
+      note: "Run it first.",
     });
   }
 
   claims.push({
     id: "physics",
-    statement: "Holonomy, sheaf spectrum, or Rogue manifold is electromagnetic / gravitational / RH.",
+    statement: "Holonomy, the Smith disk, or the manifold is gravity, electricity, or a proof.",
     klass: "speculative",
     status: "excluded",
-    note: "No model tying fibers, units, and dynamics. Studio will not assert this.",
+    note: "We will not claim that.",
   });
   claims.push({
     id: "gue",
-    statement: "This pad’s spectrum is GUE or disproves GUE.",
+    statement: "This pad proves or disproves a number-theory law of spacings.",
     klass: "speculative",
     status: "excluded",
-    note: "GUE is a zeta/point-spectrum null. Wrong null for a well pad.",
+    note: "Wrong test for a well pad.",
   });
 
   const certificates: CertRow[] = [
@@ -268,7 +269,7 @@ export function compileAudit(
     {
       id: "psd",
       pass: sh.eigenvalues.every((v) => v > -1e-6),
-      note: "connection Laplacian",
+      note: "neighbor-link spectrum",
     },
     {
       id: "gate3",
@@ -276,19 +277,19 @@ export function compileAudit(
       note: r ? r.residual.gate3.bestFloorName : "no run",
     },
     {
-      id: "sheaf-gate",
+      id: "loops",
       pass: gate.compatible,
-      note: gate.kind,
+      note: gate.kind === "sheaf" ? "pad field" : "pairwise",
     },
     {
-      id: "no-leak",
+      id: "no-tops",
       pass: !pad.wells.some((w) => w.stations.some((s) => "ANCC" in s.extra)),
-      note: "form-leak mnemonics absent",
+      note: "formation names stayed out",
     },
     {
-      id: "time-typed",
+      id: "slider",
       pass: true,
-      note: "MD physical · station parameter · ε filtration · play simulation",
+      note: "MD, station, filtration, play — four different axes",
     },
   ];
 
@@ -299,19 +300,20 @@ export function compileAudit(
 
 export const TIME_COPY: Record<TimeKind, { title: string; body: string }> = {
   physical: {
-    title: "Physical time",
-    body: "A timestamp or measured-depth clock. MD on this pad is the only physical coordinate.",
+    title: "MD",
+    body: "Measured depth. The only clock that belongs to the hole.",
   },
   parameter: {
-    title: "Trajectory parameter",
-    body: "Station index along the well. It orders samples. It is not a clock and not ε.",
+    title: "Station",
+    body: "Sample index along the well. It orders the series. It is not a clock.",
   },
   filtration: {
-    title: "Filtration scale",
-    body: "ε of the Rips complex. Sweeping it does not advance the bit.",
+    title: "Join radius",
+    body: "Distance threshold on the persistence diagram. Moving it does not move the bit.",
   },
   simulation: {
-    title: "Simulation time",
-    body: "Play-MD is a display loop. It is not drilling time and not a Hamiltonian.",
+    title: "Play",
+    body: "A preview loop on the screen. It is not the rig clock.",
   },
 };
+

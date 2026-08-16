@@ -21,10 +21,10 @@ export function briefHtml(pad: PadField, brief: WellBrief[], markers: BookMarker
       </tr>`,
     )
     .join("");
-  const mks = markers.map((m) => `${m.name} @ TVT ${m.tvt.toFixed(1)} (GR ${m.gr.toFixed(0)})`).join(" · ");
+  const mks = markers.map((m) => `${m.name} at TVT ${m.tvt.toFixed(1)} (GR ${m.gr.toFixed(0)})`).join(" · ");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
-<title>${escapeHtml(pad.name)} · Horizon brief</title>
+<title>${escapeHtml(pad.name)} · Horizon pad report</title>
 <style>
   body{margin:0;background:#0b0c0a;color:#ebe6d8;font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
   main{max-width:880px;margin:0 auto;padding:48px 24px}
@@ -35,11 +35,11 @@ export function briefHtml(pad: PadField, brief: WellBrief[], markers: BookMarker
   td{border-top:1px solid #26261f;padding:8px 6px}
   .muted{color:#8a8678}
 </style></head><body><main>
-  <p class="k">Horizon RWT · pad brief</p>
+  <p class="k">Horizon · pad report</p>
   <h1>${escapeHtml(pad.name)}</h1>
   <p class="muted">${pad.wells.length} wells · markers ${mks || "none"}</p>
   <table>
-    <thead><tr><th>Well</th><th>Call</th><th>RMSE</th><th>Last</th><th>Key</th><th>Horizon</th><th>Note</th></tr></thead>
+    <thead><tr><th>Well</th><th>Advisory</th><th>RMSE</th><th>Last known</th><th>Score</th><th>Alert MD</th><th>Note</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
 </main></body></html>`;

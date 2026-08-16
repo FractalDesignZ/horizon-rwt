@@ -2,17 +2,18 @@
 
 Auditable wellbore topology and drilling-intelligence studio.
 
-Ingest any-format channel indexes (`data[channel, channel, …]`), serve labeled TVT with encoded posteriors, and extend from the current bit with a typed claim ledger. Pairwise pad transport stays a **connection** until 2-cells compose; H¹ stays closed until that gate passes.
+Starts **empty**. Import LAS, CSV, JSON, or `data[channel, channel, …]` files — one or many. The ingest wrapper splits mixed objects (several wells in one file, type well + laterals) and maps columns. An optional assistant call sees only headers and a few sample rows; full curves stay local.
+
+No field book is shipped. Generate test wells is a dry-run only.
 
 ## What it is
 
-- **Wellscape / Fence / Compare** — pad geometry, stratigraphic hang, pair transfer
-- **Predict / Steer** — Gate 3 residual law, book window, geodesic advisory
-- **Sheaf / Locks / Transfer** — Smith transport, CycleSheaf, CTS stalks
-- **Rogue** — WOB / RPM / TRQ / ROP on a Riemannian manifold with Betti regimes and A3.1–A3.3 axioms
-- **Studio** — identity / certificate / empirical / speculative ledger, typed time, justified nulls
-
-Not a zeta-zero app. Not a physics claim engine. Holonomy is discrete connection holonomy.
+- **Import** — multi-file / multi-object ingest, column mapper
+- **Dashboard / Fence / Compare** — pad geometry, stratigraphic hang, pair transfer
+- **Predict / Steer** — Gate 3 residual law, geodesic advisory
+- **Quality / Gates / Transfer** — correlation quality, acceptance checks, neighbor send
+- **Drilling** — WOB / RPM / TRQ / ROP regimes
+- **Audit / History** — certificate ledger, saved runs
 
 ## Run
 
@@ -21,8 +22,6 @@ npm install
 npm run dev
 ```
 
-App listens on `0.0.0.0:8080`.
-
 ```bash
 npm run typecheck
 npm run build
@@ -30,8 +29,8 @@ npm run build
 
 ## Stack
 
-React 19, TanStack Start, Vite, Tailwind v4, Zustand. The scientific kernel is TypeScript in `src/lib/rwt/`.
+React 19, TanStack Start, Vite, Tailwind v4, Zustand. Kernel in `src/lib/rwt/`.
 
 ## Provenance
 
-Operationalizes [rogii-wellbore-topology](https://github.com/ZuluYokohama/rogii-wellbore-topology) plus the Horizon / GT-MoE / cellular-sheaf studio line: geometry with epistemic labels.
+Operationalizes [rogii-wellbore-topology](https://github.com/ZuluYokohama/rogii-wellbore-topology).

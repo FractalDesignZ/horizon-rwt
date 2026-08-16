@@ -12,6 +12,10 @@ export const CANONICAL_CHANNELS = [
   "CALI",
   "DT",
   "PE",
+  "WOB",
+  "RPM",
+  "TRQ",
+  "ROP",
 ] as const;
 
 export type CanonicalChannel = (typeof CANONICAL_CHANNELS)[number];
@@ -54,6 +58,16 @@ export const CHANNEL_ALIASES: Record<string, CanonicalChannel> = {
   dtc: "DT",
   pe: "PE",
   pef: "PE",
+  wob: "WOB",
+  weightonbit: "WOB",
+  weight_on_bit: "WOB",
+  rpm: "RPM",
+  rotary: "RPM",
+  trq: "TRQ",
+  torque: "TRQ",
+  rop: "ROP",
+  rateofpenetration: "ROP",
+  rate_of_penetration: "ROP",
 };
 
 export const LAS_NULLS = [-999.25, -999, -9999, -9999.25, -999.99];
@@ -75,9 +89,15 @@ export interface Station {
   extra: Record<string, number>;
 }
 
+export interface BedTop {
+  name: string;
+  tvt: number;
+}
+
 export interface Typewell {
   tvt: number[];
   gr: number[];
+  tops?: BedTop[];
 }
 
 export interface Well {
@@ -88,6 +108,7 @@ export interface Well {
   typewell: Typewell;
   sourceFormat: string;
   channels: string[];
+  area?: string;
 }
 
 export interface GeometryFeatures {

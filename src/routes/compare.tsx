@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { AppShell } from "@/components/app-shell";
+import { EmptyPad } from "@/components/empty-pad";
+import { Caption, PageLead } from "@/components/caption";
 import { ProbabilityPanel } from "@/components/probability-panel";
 import { WellTracks } from "@/components/well-tracks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { computeLocks, computePadSheaf } from "@/lib/rwt/cycle";
 import { computeSteer } from "@/lib/rwt/steer";
 import { transferPosterior } from "@/lib/rwt/transfer";
@@ -51,17 +53,17 @@ function ComparePage() {
   const lockA = resA ? computeLocks(resA, station) : null;
   const lockB = resB ? computeLocks(resB, bIndex) : null;
 
+  if (!wellA) return <EmptyPad title="Compare needs a well" />;
+
   return (
     <AppShell>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">M12 · pair</p>
-            <h1 className="font-display text-4xl tracking-tight">Compare</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted">
-              Two laterals, same pad book. Align on fractional MD. The transferred posterior is
-              what A would tell B from this station.
-            </p>
+            <PageLead kicker="A / B" title="Compare" id="neighbors">
+              Two laterals, same type well, aligned on fractional MD. Right panel is the
+              posterior A would transfer onto B from here.
+            </PageLead>
           </div>
           <div className="flex flex-wrap gap-2">
             <select
@@ -107,18 +109,18 @@ function ComparePage() {
           <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Delta
-                label="Last-known"
+                label="Last known"
                 a={resA ? resA.priors.lastKnown.toFixed(1) : "—"}
                 b={resB ? resB.priors.lastKnown.toFixed(1) : "—"}
               />
               <Delta
-                label="Toe RMSE"
+                label="RMSE"
                 a={resA?.toeRmse != null ? resA.toeRmse.toFixed(2) : "—"}
                 b={resB?.toeRmse != null ? resB.toeRmse.toFixed(2) : "—"}
               />
-              <Delta label="Call" a={steerA?.advisory ?? "—"} b={steerB?.advisory ?? "—"} />
+              <Delta label="Advisory" a={steerA?.advisory ?? "—"} b={steerB?.advisory ?? "—"} />
               <Delta
-                label="Key fit"
+                label="Score"
                 a={lockA ? `${(lockA.keyFit * 100).toFixed(0)}` : "—"}
                 b={lockB ? `${(lockB.keyFit * 100).toFixed(0)}` : "—"}
               />
@@ -128,7 +130,7 @@ function ComparePage() {
               <Card className="overflow-hidden p-0">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle>{wellA.id}</CardTitle>
-                  <CardDescription>Serve at aligned station</CardDescription>
+                  <Caption id="match">Source at this MD</Caption>
                 </CardHeader>
                 <CardContent className="p-0">
                   <WellTracks well={wellA} result={resA} station={station} onStation={setStation} />
@@ -137,7 +139,7 @@ function ComparePage() {
               <Card className="overflow-hidden p-0">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle>{wellB.id}</CardTitle>
-                  <CardDescription>Same fractional MD</CardDescription>
+                  <Caption id="match">Aligned station</Caption>
                 </CardHeader>
                 <CardContent className="p-0">
                   <WellTracks well={wellB} result={resB} station={bIndex} onStation={(i) => {
@@ -160,8 +162,10 @@ function ComparePage() {
             <div className="grid gap-5 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>A at MD {wellA.stations[Math.min(station, wellA.stations.length - 1)]!.md.toFixed(0)}</CardTitle>
-                  <CardDescription>Native posterior</CardDescription>
+                  <CardTitle>
+                    {wellA.id} @ {wellA.stations[Math.min(station, wellA.stations.length - 1)]!.md.toFixed(0)}
+                  </CardTitle>
+                  <Caption id="match">Own posterior</Caption>
                 </CardHeader>
                 <CardContent>
                   {resA?.probability[station] ? (
@@ -173,12 +177,14 @@ function ComparePage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>A → B transfer</CardTitle>
-                  <CardDescription>
+                  <CardTitle>
+                    {wellA.id} → {wellB.id}
+                  </CardTitle>
+                  <Caption id="neighbors">
                     {hit
-                      ? `shift ${hit.shift >= 0 ? "+" : ""}${hit.shift.toFixed(2)} · w ${hit.weight.toFixed(2)}`
+                      ? `shift ${hit.shift >= 0 ? "+" : ""}${hit.shift.toFixed(2)} · weight ${hit.weight.toFixed(2)}`
                       : "Need a pad edge"}
-                  </CardDescription>
+                  </Caption>
                 </CardHeader>
                 <CardContent>
                   {hit ? (

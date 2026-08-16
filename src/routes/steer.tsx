@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { AppShell } from "@/components/app-shell";
+import { EmptyPad } from "@/components/empty-pad";
 import { PlayBar } from "@/components/play-bar";
 import { ProbabilityPanel } from "@/components/probability-panel";
 import { SteerCorridor } from "@/components/steer-corridor";
+import { Caption, PageLead } from "@/components/caption";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { applyWhatIf } from "@/lib/rwt/cycle";
 import { computeSteer } from "@/lib/rwt/steer";
 import { useHorizon } from "@/lib/store";
@@ -39,19 +41,19 @@ function SteerPage() {
     if (ps >= 0) setStation(ps);
   }, [well, setStation]);
 
+  if (!well) return <EmptyPad title="Steer needs a well" />;
+
   const frame = result?.probability[station];
 
   return (
     <AppShell>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">M10 · from the bit</p>
-            <h1 className="font-display text-4xl tracking-tight">Steer</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted">
-              Current position is the bit. The book inverts GR to a TVT target. A geodesic on the
-              value-warped metric walks the remaining lateral. Horizon ticks are where match dies.
-            </p>
+            <PageLead kicker="From the bit" title="Steer" id="call">
+              Current TVT versus type-well target. Recommended path is the lowest-cost walk
+              ahead. Red ticks are lost lock. Advisory is HOLD, BUILD, DROP, or CUT.
+            </PageLead>
           </div>
           <div className="flex flex-wrap gap-2">
             <select
@@ -87,23 +89,24 @@ function SteerPage() {
               </div>
               <Metric label="Bit MD" value={steer.bitMd.toFixed(0)} hint={`TVT ${steer.bitTvt.toFixed(1)}`} />
               <Metric
-                label="Book target"
+                label="Target TVT"
                 value={steer.target.toFixed(1)}
                 hint={`window ${steer.windowLo.toFixed(0)}–${steer.windowHi.toFixed(0)}`}
               />
               <Metric
-                label="To horizon"
+                label="To alert"
                 value={steer.mdToHorizon == null ? "none" : steer.mdToHorizon.toFixed(0)}
-                hint={steer.mdToHorizon == null ? "recoverable" : "ft remaining"}
+                hint={steer.mdToHorizon == null ? "still locked" : "ft MD remaining"}
               />
             </div>
 
             <Card className="overflow-hidden p-0">
               <CardHeader className="p-5 pb-2">
-                <CardTitle>Ahead of bit</CardTitle>
-                <CardDescription>
-                  Teal band = posterior σ · dashed = book · paper = geodesic · red ticks = horizon
-                </CardDescription>
+                <CardTitle>Corridor</CardTitle>
+                <Caption id="path">
+                  Band is the posterior spread. Dashed is the type-well target. Solid is the
+                  recommended path. Red is lost lock.
+                </Caption>
               </CardHeader>
               <CardContent className="p-0">
                 <SteerCorridor steer={steer} onBit={setStation} />
@@ -114,47 +117,46 @@ function SteerPage() {
             <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
               <Card>
                 <CardHeader>
-                  <CardTitle>Outcome here</CardTitle>
-                  <CardDescription>Encoded mass at the bit · bias walks the geodesic</CardDescription>
+                  <CardTitle>Posterior at bit</CardTitle>
+                  <Caption id="match">Offset last known to walk the path.</Caption>
                 </CardHeader>
                 <CardContent>
-                  {frame ? <ProbabilityPanel frame={frame} /> : <p className="text-sm text-muted">No frame.</p>}
+                  {frame ? <ProbabilityPanel frame={frame} /> : <p className="text-sm text-muted">No posterior yet.</p>}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Badge variant={steer.advisory === "CUT" ? "danger" : steer.advisory === "HOLD" ? "ok" : "warn"}>
                       {steer.advisory}
                     </Badge>
-                    <Badge>geo → {steer.geoEnd.toFixed(1)}</Badge>
+                    <Badge>path ends {steer.geoEnd.toFixed(1)}</Badge>
                     <Badge>risk {(steer.risk * 100).toFixed(0)}</Badge>
-                    <Badge>{steer.remaining} stn left</Badge>
+                    <Badge>{steer.remaining} left</Badge>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Why this call</CardTitle>
-                  <CardDescription>Agency is a flow on Mv that stays on the book</CardDescription>
+                  <CardTitle>Rationale</CardTitle>
+                  <Caption id="call">Recoverability, offset from target, distance to lost lock.</Caption>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm text-muted">
                   <p>
-                    Value at each bin is recoverability, inverse horizon score, and distance to the
-                    GR-inverted book TVT. The conformal factor e^(-βv) shortens high-value steps.
-                    Slope stays under 0.008 ft/ft.
+                    Lost-lock stations cost extra. The path goes around them when it can. Max
+                    build is 8 ft / 1000 ft MD.
                   </p>
                   <ul className="space-y-2 font-mono text-xs">
                     <li className="flex justify-between">
-                      <span className="text-subtle">bit vs book</span>
+                      <span className="text-subtle">bit − target</span>
                       <span>{(steer.bitTvt - steer.target).toFixed(2)} ft</span>
                     </li>
                     <li className="flex justify-between">
-                      <span className="text-subtle">geo end</span>
+                      <span className="text-subtle">path ends</span>
                       <span>{steer.geoEnd.toFixed(2)}</span>
                     </li>
                     <li className="flex justify-between">
-                      <span className="text-subtle">onset MD</span>
+                      <span className="text-subtle">alert at</span>
                       <span>{steer.onsetMd != null ? steer.onsetMd.toFixed(0) : "—"}</span>
                     </li>
                     <li className="flex justify-between">
-                      <span className="text-subtle">what-if</span>
+                      <span className="text-subtle">offset</span>
                       <span>{whatIf >= 0 ? "+" : ""}{whatIf.toFixed(1)}</span>
                     </li>
                   </ul>
@@ -163,7 +165,7 @@ function SteerPage() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-muted">{running ? "Computing steer…" : "Run a well first."}</p>
+          <p className="text-sm text-muted">{running ? "Computing path…" : "Run a well first."}</p>
         )}
       </div>
     </AppShell>

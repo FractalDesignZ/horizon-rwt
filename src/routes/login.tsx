@@ -37,10 +37,10 @@ function Login() {
   return (
     <main className="grid min-h-dvh place-items-center bg-bg px-4 text-fg">
       <div className="w-full max-w-sm">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-muted">RWT Horizon</p>
+        <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Horizon</p>
         <h1 className="mt-2 font-display text-4xl tracking-tight">Sign in</h1>
         <p className="mt-2 text-sm text-muted">
-          Save certified runs to your ledger. The demo pad is open without an account.
+          Save runs to your account. Import your own files — nothing is preloaded.
         </p>
 
         {authEnabled ? (
@@ -102,7 +102,7 @@ function Login() {
         )}
 
         <Link to="/" className="mt-8 inline-block text-sm text-muted no-underline hover:text-fg">
-          Back to wellscape
+          Back to the pad
         </Link>
       </div>
     </main>

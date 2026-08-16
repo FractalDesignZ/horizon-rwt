@@ -14,9 +14,12 @@ export function PlayBar({ max }: { max: number }) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant={playing ? "default" : "secondary"} onClick={() => (playing ? stopPlay() : play())}>
-          {playing ? "Pause" : "Play MD"}
+          {playing ? "Pause" : "Play"}
         </Button>
-        <span className="font-mono text-xs text-muted">what-if {whatIf >= 0 ? "+" : ""}{whatIf.toFixed(1)} ft</span>
+        <span className="font-mono text-xs text-muted">
+          offset {whatIf >= 0 ? "+" : ""}
+          {whatIf.toFixed(1)} ft
+        </span>
       </div>
       <label className="flex flex-col gap-1">
         <span className="text-[11px] uppercase tracking-[0.12em] text-muted">Station</span>
@@ -34,7 +37,7 @@ export function PlayBar({ max }: { max: number }) {
         />
       </label>
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">Last-known bias along toe</span>
+        <span className="text-[11px] uppercase tracking-[0.12em] text-muted">Offset last known</span>
         <input
           type="range"
           min={-8}
@@ -43,7 +46,7 @@ export function PlayBar({ max }: { max: number }) {
           value={whatIf}
           onChange={(e) => setWhatIf(Number(e.target.value))}
           className="w-full"
-          aria-label="What-if bias"
+          aria-label="Offset last known"
         />
       </label>
     </div>

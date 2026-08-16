@@ -92,7 +92,7 @@ export function SteerCorridor({
         {maxM.toFixed(0)}
       </text>
       <text x={8} y={padT + 8} fill="#5c594e" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-        TVT
+        bed
       </text>
     </svg>
   );

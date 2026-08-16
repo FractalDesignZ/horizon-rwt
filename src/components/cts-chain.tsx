@@ -10,7 +10,7 @@ export function CtsChain({ cts }: { cts: CtsReport }) {
               →
             </span>
           )}
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">{s.id}</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">step {s.id}</p>
           <p className="mt-1 font-display text-lg">{s.name}</p>
           <p className="mt-1 font-mono text-sm tabular-nums">{s.value}</p>
           <p className={`mt-1 text-xs ${s.ok ? "text-ok" : "text-warn"}`}>{s.note}</p>

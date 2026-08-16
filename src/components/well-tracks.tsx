@@ -106,12 +106,12 @@ export function WellTracks({ well, result, station, onStation, overlays }: Props
       })}
 
       <text x={8} y={16} fill="#8a8678" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-        GR
+        gamma
       </text>
       <path d={pathOf(gr, grMin, grMax, 0)} fill="none" stroke="#8a9a7b" strokeWidth={1.4} />
 
       <text x={8} y={trackH + gap + 16} fill="#8a8678" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-        TVT
+        bed
       </text>
       {show.includes("truth") && (
         <path

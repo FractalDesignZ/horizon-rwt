@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { channelLabel } from "@/lib/plain";
 import { channelAt } from "@/lib/rwt/cts";
 import type { Well } from "@/lib/rwt/types";
 
@@ -20,7 +21,7 @@ export function ChannelRaster({
   const rows = names.filter((name) => well.stations.some((s, i) => Number.isFinite(channelAt(well, name, i))));
   const W = 720;
   const rowH = 28;
-  const left = 52;
+  const left = 78;
   const H = 18 + rows.length * rowH;
   const step = Math.max(1, Math.floor(n / 120));
 
@@ -29,7 +30,7 @@ export function ChannelRaster({
       viewBox={`0 0 ${W} ${H}`}
       className="h-auto w-full"
       role="img"
-      aria-label="Channel raster"
+      aria-label="The curves"
       onClick={(e) => {
         if (!onStation) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -70,7 +71,7 @@ export function ChannelRaster({
           return (
             <g key={name}>
               <text x={6} y={y + 11} fill="#8a8678" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-                {name}
+                {channelLabel(name)}
               </text>
               {cells}
             </g>
@@ -78,7 +79,7 @@ export function ChannelRaster({
         })}
       {rows.map((name, r) => (
         <text key={name} x={6} y={10 + r * rowH + 11} fill="#8a8678" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-          {live ? "" : name}
+          {live ? "" : channelLabel(name)}
         </text>
       ))}
       <line

@@ -23,7 +23,7 @@ export function PadCycle({
   const byId = Object.fromEntries(sheaf.nodes.map((n) => [n.id, n]));
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Pad cycle sheaf">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="How the pad is linked">
       <rect width={W} height={H} fill="#0b0c0a" />
       {sheaf.edges.map((e) => {
         const a = byId[e.a];

@@ -77,7 +77,9 @@ export function particleFilter(
     }
 
     const obs = well.stations[i]!.gr;
-    let sig = proc0 * (Number.isFinite(obs) ? 1 : 1.75);
+    const dmd = i > 0 ? Math.abs(well.stations[i]!.md - well.stations[i - 1]!.md) : 15;
+    let sig = proc0 * Math.sqrt(Math.max(dmd, 0.5) / 15);
+    if (!Number.isFinite(obs)) sig *= 1.75;
     if (i > 0 && Number.isFinite(stds[i - 1]!)) {
       sig *= clamp(1 + 0.15 * (stds[i - 1]! / 5), 1, 1.8);
     }

@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { AppShell } from "@/components/app-shell";
+import { EmptyPad } from "@/components/empty-pad";
 import { ChannelRaster } from "@/components/channel-raster";
 import { CtsChain } from "@/components/cts-chain";
 import { PadCycle } from "@/components/pad-cycle";
 import { PlayBar } from "@/components/play-bar";
 import { ProbabilityPanel } from "@/components/probability-panel";
+import { Caption, PageLead } from "@/components/caption";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { computeCts } from "@/lib/rwt/cts";
 import { computePadSheaf } from "@/lib/rwt/cycle";
 import { applyWhatIf } from "@/lib/rwt/cycle";
@@ -49,18 +51,17 @@ function TransferPage() {
   const srcFrame = result?.probability[station];
   const names = result?.cts.channels.map((c) => c.name) ?? ["GR", "RES", "NPHI", "RHOB"];
 
+  if (!well) return <EmptyPad title="Transfer needs a well" />;
+
   return (
     <AppShell>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">M9 · from here</p>
-            <h1 className="font-display text-4xl tracking-tight">Transfer</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted">
-              Every extra log is a stalk. The CTS chain compresses state to a coherent pair
-              (Q, Φ). The encoded posterior at this station is transported across the pad sheaf
-              onto a neighbor.
-            </p>
+            <PageLead kicker="Source → target" title="Transfer" id="neighbors">
+              Pack the posterior on the source well and send it to a neighbor. If pad loops do
+              not close, this stays a pairwise link — not a pad-wide field.
+            </PageLead>
           </div>
           <div className="flex flex-wrap gap-2">
             <select
@@ -71,7 +72,7 @@ function TransferPage() {
             >
               {pad.wells.map((w) => (
                 <option key={w.id} value={w.id}>
-                  from {w.id}
+                  source {w.id}
                 </option>
               ))}
             </select>
@@ -85,7 +86,7 @@ function TransferPage() {
                 .filter((w) => w.id !== active)
                 .map((w) => (
                   <option key={w.id} value={w.id}>
-                    onto {w.id}
+                    target {w.id}
                   </option>
                 ))}
             </select>
@@ -99,20 +100,20 @@ function TransferPage() {
           <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Metric
-                label="Schematism"
-                value={cts.schematism ? "holds" : "fails"}
-                hint={`contact ${cts.contact.toFixed(2)}`}
+                label="Contact"
+                value={cts.schematism ? "ok" : "weak"}
+                hint={`fit ${cts.contact.toFixed(2)}`}
               />
-              <Metric label="Warp e^{−βv}" value={cts.warp.toFixed(2)} hint={`value ${cts.value.toFixed(2)}`} />
+              <Metric label="Warp" value={cts.warp.toFixed(2)} hint={`value ${cts.value.toFixed(2)}`} />
               <Metric
                 label="Shift"
                 value={hit ? `${hit.shift >= 0 ? "+" : ""}${hit.shift.toFixed(2)}` : "—"}
-                hint={hit ? `weight ${hit.weight.toFixed(2)}` : "run pad for edges"}
+                hint={hit ? `weight ${hit.weight.toFixed(2)}` : "run pad for neighbors"}
               />
               <Metric
-                label="Received"
+                label="Landed"
                 value={hit ? hit.frame.mode.toFixed(1) : "—"}
-                hint={hit ? `${hit.wellId} mode` : "no neighbor"}
+                hint={hit ? `on ${hit.wellId}` : "no neighbor"}
               />
             </div>
 
@@ -120,8 +121,8 @@ function TransferPage() {
 
             <Card className="overflow-hidden p-0">
               <CardHeader className="p-5 pb-2">
-                <CardTitle>data[channel, …]</CardTitle>
-                <CardDescription>Click the raster to set current station · extra logs ride the same MD index</CardDescription>
+                <CardTitle>Channels</CardTitle>
+                <Caption id="gamma">Click a station. Extra logs share MD.</Caption>
               </CardHeader>
               <CardContent className="p-0">
                 <ChannelRaster well={well} names={names} station={station} onStation={setStation} />
@@ -132,19 +133,21 @@ function TransferPage() {
             <div className="grid gap-5 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Source at MD {well.stations[station]!.md.toFixed(0)}</CardTitle>
-                  <CardDescription>{well.id} · encoded posterior</CardDescription>
+                  <CardTitle>
+                    {well.id} @ {well.stations[station]!.md.toFixed(0)}
+                  </CardTitle>
+                  <Caption id="match">Source posterior</Caption>
                 </CardHeader>
                 <CardContent>
                   {srcFrame ? (
                     <ProbabilityPanel frame={srcFrame} />
                   ) : (
-                    <p className="text-sm text-muted">No frame.</p>
+                    <p className="text-sm text-muted">No posterior yet.</p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     {cts.channels.slice(0, 6).map((c) => (
                       <Badge key={c.name}>
-                        {c.name} {Number.isFinite(c.corrGr) ? `ρ ${c.corrGr.toFixed(2)}` : ""}
+                        {c.name} {Number.isFinite(c.corrGr) ? `r ${c.corrGr.toFixed(2)}` : ""}
                       </Badge>
                     ))}
                   </div>
@@ -153,15 +156,15 @@ function TransferPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Received on {hit?.wellId ?? targetId}</CardTitle>
-                  <CardDescription>
-                    Restriction across pad edge · tension {hit ? hit.tension.toFixed(2) : "—"}
-                  </CardDescription>
+                  <Caption id="neighbors">
+                    Transported posterior · tension {hit ? hit.tension.toFixed(2) : "—"}
+                  </Caption>
                 </CardHeader>
                 <CardContent>
                   {hit ? (
                     <ProbabilityPanel frame={hit.frame} />
                   ) : (
-                    <p className="text-sm text-muted">Run the pad so neighbor stalks exist.</p>
+                    <p className="text-sm text-muted">Run the pad so neighbors have results.</p>
                   )}
                   {hits.length > 1 && (
                     <ul className="mt-4 space-y-1.5">
@@ -174,7 +177,7 @@ function TransferPage() {
                           >
                             <span className="font-mono">{h.wellId}</span>
                             <span className="font-mono text-xs text-muted">
-                              {h.frame.mode.toFixed(1)} · w {h.weight.toFixed(2)}
+                              {h.frame.mode.toFixed(1)} · wt {h.weight.toFixed(2)}
                             </span>
                           </button>
                         </li>
@@ -187,8 +190,8 @@ function TransferPage() {
 
             <Card className="overflow-hidden p-0">
               <CardHeader className="p-5 pb-2">
-                <CardTitle>Pad transport</CardTitle>
-                <CardDescription>Click a well to retarget the source</CardDescription>
+                <CardTitle>Pad</CardTitle>
+                <Caption id="pad">Click a well to set it as source.</Caption>
               </CardHeader>
               <CardContent className="p-0">
                 <PadCycle sheaf={padSheaf} active={active} onSelect={setWell} />
@@ -196,7 +199,7 @@ function TransferPage() {
             </Card>
           </>
         ) : (
-          <p className="text-sm text-muted">{running ? "Computing transfer…" : "Run a well first."}</p>
+          <p className="text-sm text-muted">{running ? "Transferring…" : "Run a well first."}</p>
         )}
       </div>
     </AppShell>

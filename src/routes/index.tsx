@@ -1,19 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Caption, PageLead } from "@/components/caption";
+import { EmptyPad } from "@/components/empty-pad";
 import { ModeRail } from "@/components/mode-rail";
 import { IsoPad } from "@/components/iso-pad";
 import { PadMap } from "@/components/pad-map";
 import { WellSection } from "@/components/well-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { serveLabel } from "@/lib/plain";
 import { useHorizon } from "@/lib/store";
 
 export const Route = createFileRoute("/")({ component: Wellscape });
 
 function Wellscape() {
   const pad = useHorizon((s) => s.pad);
+  const bookKind = useHorizon((s) => s.bookKind);
   const results = useHorizon((s) => s.results);
   const active = useHorizon((s) => s.activeWellId);
   const running = useHorizon((s) => s.running);
@@ -25,49 +29,59 @@ function Wellscape() {
   const [view, setView] = useState<"plan" | "section" | "iso">("plan");
 
   useEffect(() => {
-    if (!results[active] && !running) runWell(active);
+    if (active && !results[active] && !running) runWell(active);
   }, [active, results, running, runWell]);
+
+  if (!pad.wells.length) {
+    return <EmptyPad title="Dashboard is empty" />;
+  }
 
   const well = pad.wells.find((w) => w.id === active);
   const toeCount = well?.stations.filter((s) => s.isPredict).length ?? 0;
-  const rmses = pad.wells.map((w) => results[w.id]?.toeRmse).filter((v): v is number => v != null);
-  const meanRmse = rmses.length ? rmses.reduce((a, b) => a + b, 0) / rmses.length : null;
-  const horizons = pad.wells.filter((w) => results[w.id]?.sheaf.horizonOnset != null).length;
+  const misses = pad.wells.map((w) => results[w.id]?.toeRmse).filter((v): v is number => v != null);
+  const meanMiss = misses.length ? misses.reduce((a, b) => a + b, 0) / misses.length : null;
+  const lost = pad.wells.filter((w) => results[w.id]?.sheaf.horizonOnset != null).length;
 
   return (
     <AppShell>
       <div className="flex flex-col gap-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Eagle pad 01</p>
-            <h1 className="mt-1 font-display text-4xl tracking-tight md:text-5xl">Wellscape</h1>
-            <p className="mt-2 max-w-xl text-sm text-muted">
-              Geology is a GR@TVT book. Laterals are paths that must be placed on it.
-              Priors first, match second, residual only if Gate 3 accepts.
-            </p>
+            <PageLead kicker={pad.name} title="Dashboard" id="pad">
+              {bookKind === "test"
+                ? "Test wells (generated, not field data). Last known TVT first, then GR correlation. Residual ships only if it beats baseline."
+                : "Imported wells. Last known TVT first, then GR correlation. Residual ships only if it beats baseline."}
+            </PageLead>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => runWell(active)} disabled={running}>
+            <Button variant="secondary" onClick={() => runWell(active)} disabled={running || !active}>
               {running ? "Running…" : "Run well"}
             </Button>
             <Button onClick={runPad} disabled={running}>
-              Run pad
+              Run all
+            </Button>
+            <Button variant="secondary" asChild>
+              <Link to="/ingest">Import</Link>
             </Button>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi label="Wells" value={String(pad.wells.length)} hint="synthetic pad + ingest" />
-          <Kpi label="Active toe" value={String(toeCount)} hint="1-ft predict stations" />
           <Kpi
-            label="Selected RMSE"
+            label="Wells"
+            value={String(pad.wells.length)}
+            hint={bookKind === "test" ? "test wells" : "imported"}
+          />
+          <Kpi label="Unlabeled" value={String(toeCount)} hint="stations past last known" />
+          <Kpi
+            label="RMSE"
             value={result?.toeRmse != null ? result.toeRmse.toFixed(2) : "—"}
-            hint={result?.selectedName ?? "awaiting run"}
+            hint={result ? serveLabel(result.selectedName) : "run first"}
           />
           <Kpi
-            label="Horizons"
-            value={`${horizons}/${pad.wells.length}`}
-            hint={meanRmse != null ? `pad RMSE ${meanRmse.toFixed(2)}` : "run pad to certify"}
+            label="Lost lock"
+            value={`${lost}/${pad.wells.length}`}
+            hint={meanMiss != null ? `pad RMSE ${meanMiss.toFixed(2)}` : "run the pad"}
           />
         </div>
 
@@ -76,14 +90,14 @@ function Wellscape() {
             <CardHeader className="p-5 pb-2">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle>{view === "plan" ? "Plan" : view === "section" ? "Section" : "Iso"}</CardTitle>
-                  <CardDescription>
+                  <CardTitle>{view === "plan" ? "Plan" : view === "section" ? "Section" : "3D"}</CardTitle>
+                  <Caption id="pad">
                     {view === "plan"
-                      ? "Lateral XY · click a toe to select"
+                      ? "Map view. Click a toe to select a well."
                       : view === "section"
-                        ? "Departure vs TVD · red = horizon onset"
-                        : "Isometric XYZ · heel to toe"}
-                  </CardDescription>
+                        ? "Departure vs TVD. Red marks lost lock."
+                        : "Isometric pad. Heel to toe."}
+                  </Caption>
                 </div>
                 <div className="flex gap-1">
                   <Button size="sm" variant={view === "plan" ? "default" : "secondary"} onClick={() => setView("plan")}>
@@ -97,7 +111,7 @@ function Wellscape() {
                     Section
                   </Button>
                   <Button size="sm" variant={view === "iso" ? "default" : "secondary"} onClick={() => setView("iso")}>
-                    Iso
+                    3D
                   </Button>
                 </div>
               </div>
@@ -110,13 +124,12 @@ function Wellscape() {
           <Card>
             <CardHeader>
               <CardTitle>Wells</CardTitle>
-              <CardDescription>GroupKFold unit is the well</CardDescription>
+              <Caption id="pad">Select a well to inspect.</Caption>
             </CardHeader>
             <CardContent className="space-y-1 p-5 pt-0">
               {pad.wells.map((w) => {
                 const r = results[w.id];
                 const on = w.id === active;
-                const ingested = w.padId === "ingest";
                 return (
                   <div
                     key={w.id}
@@ -125,13 +138,14 @@ function Wellscape() {
                     }`}
                   >
                     <button type="button" onClick={() => setWell(w.id)} className="min-w-0 flex-1 text-left">
-                      <span className="font-mono text-sm">{w.id}</span>
+                      <span className="block truncate text-sm text-fg">{w.name}</span>
+                      <span className="block truncate font-mono text-[11px] text-subtle">{w.id}</span>
                     </button>
                     <span className="flex items-center gap-2">
-                      {r?.sheaf.horizonOnset != null && <Badge variant="danger">H</Badge>}
+                      {r?.sheaf.horizonOnset != null && <Badge variant="danger">alert</Badge>}
                       {r ? (
                         <Badge variant={r.residual.useResidual ? "ok" : "warn"}>
-                          {r.residual.useResidual ? "G3" : "floor"}
+                          {r.residual.useResidual ? "residual" : "baseline"}
                         </Badge>
                       ) : (
                         <Badge>idle</Badge>
@@ -139,30 +153,30 @@ function Wellscape() {
                       <span className="font-mono text-xs tabular-nums text-muted">
                         {r?.toeRmse != null ? r.toeRmse.toFixed(2) : "—"}
                       </span>
-                      {ingested && (
-                        <button
-                          type="button"
-                          className="text-xs text-subtle hover:text-danger"
-                          onClick={() => removeWell(w.id)}
-                          aria-label={`Remove ${w.id}`}
-                        >
-                          ×
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="text-xs text-subtle hover:text-danger"
+                        onClick={() => removeWell(w.id)}
+                        aria-label={`Remove ${w.id}`}
+                      >
+                        ×
+                      </button>
                     </span>
                   </div>
                 );
               })}
               <div className="mt-3 flex flex-wrap gap-4">
-                <Link
-                  to="/well/$id"
-                  params={{ id: active }}
-                  className="text-sm text-muted no-underline hover:text-fg"
-                >
-                  Open well {active}
-                </Link>
+                {active && (
+                  <Link
+                    to="/well/$id"
+                    params={{ id: active }}
+                    className="text-sm text-muted no-underline hover:text-fg"
+                  >
+                    Open {active}
+                  </Link>
+                )}
                 <Link to="/fence" className="text-sm text-muted no-underline hover:text-fg">
-                  Pad fence
+                  Open fence
                 </Link>
               </div>
             </CardContent>

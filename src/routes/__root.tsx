@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "description", content: "Topological wellbore analysis and TVT prediction." },
+      { name: "description", content: "Horizon — pad-level geosteering: predict TVT, score quality, steer." },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "theme-color", content: "#0b0c0a" },
       { name: "twitter:card", content: "summary_large_image" },

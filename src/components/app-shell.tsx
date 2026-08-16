@@ -1,26 +1,34 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { useHorizon } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Wellscape" },
-  { to: "/ingest", label: "Ingest" },
+  { to: "/", label: "Dashboard" },
+  { to: "/ingest", label: "Import" },
   { to: "/predict", label: "Predict" },
-  { to: "/sheaf", label: "Sheaf" },
-  { to: "/locks", label: "Locks" },
+  { to: "/sheaf", label: "Quality" },
+  { to: "/locks", label: "Gates" },
   { to: "/transfer", label: "Transfer" },
   { to: "/steer", label: "Steer" },
   { to: "/fence", label: "Fence" },
   { to: "/compare", label: "Compare" },
-  { to: "/rogue", label: "Rogue" },
-  { to: "/studio", label: "Studio" },
-  { to: "/ledger", label: "Ledger" },
+  { to: "/rogue", label: "Drilling" },
+  { to: "/studio", label: "Audit" },
+  { to: "/ledger", label: "History" },
+  { to: "/guide", label: "Help" },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isPending } = useCurrentUserState();
+  const rehydrate = useHorizon((s) => s.rehydrate);
+
+  useEffect(() => {
+    rehydrate();
+  }, [rehydrate]);
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -29,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link to="/" className="flex items-baseline gap-2 no-underline">
             <span className="font-display text-xl tracking-tight text-fg">Horizon</span>
             <span className="hidden text-[11px] uppercase tracking-[0.16em] text-subtle sm:inline">
-              RWT
+              geosteering
             </span>
           </Link>
           <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">

@@ -35,10 +35,10 @@ export function RogueManifold({
   const gy = (report.safe.wob + report.safe.rpm) * 0.5 - report.safe.trq * 8;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Drilling manifold">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Weight, turns, torque">
       <rect width={W} height={H} fill="#0b0c0a" />
       <text x={pad} y={18} fill="#5c594e" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-        WOB–RPM–TRQ
+        weight · turns · twist
       </text>
       {win.slice(1).map((f, k) => {
         const a = win[k]!;
@@ -71,7 +71,7 @@ export function RogueManifold({
       <circle cx={sx(gx)} cy={sy(gy)} r={7} fill="none" stroke="#6b8f71" strokeWidth={1.4} />
       <circle cx={sx(hx)} cy={sy(hy)} r={5} fill="#ebe6d8" />
       <text x={W - pad} y={H - 12} textAnchor="end" fill="#5c594e" fontSize={10} fontFamily="IBM Plex Mono, monospace">
-        geodesic → safe
+        cheapest way back
       </text>
     </svg>
   );

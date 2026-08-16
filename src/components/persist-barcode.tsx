@@ -5,8 +5,8 @@ export function PersistBarcode({ report }: { report: PersistReport }) {
   const maxD = Math.max(0.01, ...finite.map((b) => b.death), report.mergeScale ?? 0);
   const rows = [...report.bars].sort((a, b) => a.dim - b.dim || a.death - b.death);
   const H = Math.max(120, 16 + rows.length * 14);
-  const left = 36;
-  const inner = 520;
+  const left = 52;
+  const inner = 504;
 
   return (
     <svg viewBox={`0 0 580 ${H}`} className="h-auto w-full" role="img" aria-label="Persistence barcode">
@@ -19,7 +19,7 @@ export function PersistBarcode({ report }: { report: PersistReport }) {
         return (
           <g key={`${b.dim}-${i}`}>
             <text x={4} y={y + 4} fill="#5c594e" fontSize={9} fontFamily="IBM Plex Mono, monospace">
-              H{b.dim}
+              {b.dim === 0 ? "β₀" : "β₁"}
             </text>
             <line
               x1={x0}

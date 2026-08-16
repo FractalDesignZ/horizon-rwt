@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Caption, PageLead } from "@/components/caption";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { serveLabel } from "@/lib/plain";
 import { listRuns } from "@/lib/runs";
 import { useHorizon } from "@/lib/store";
 
@@ -29,7 +31,7 @@ function Ledger() {
     if (!user) return;
     listRuns()
       .then(setRuns)
-      .catch((e) => setErr(e instanceof Error ? e.message : "Could not load ledger"));
+      .catch((e) => setErr(e instanceof Error ? e.message : "Could not load saved runs"));
   }, [user]);
 
   const live = pad.wells
@@ -40,18 +42,16 @@ function Ledger() {
     <AppShell>
       <div className="flex flex-col gap-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted">M6 CERTIFY</p>
-          <h1 className="font-display text-4xl tracking-tight">Ledger</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            Public clamp law: residual ships only if it beats the best pure floor and last-known.
-            Session results below; sealed rows persist to your account.
-          </p>
+          <PageLead kicker="Runs" title="History" id="say">
+            Residual ships only if it beats the baselines. This session is below. Saved rows
+            stay with your account.
+          </PageLead>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Session certificate</CardTitle>
-            <CardDescription>This preview · GroupKFold unit = well</CardDescription>
+            <CardTitle>This session</CardTitle>
+            <Caption id="floor">Each well is scored on its own. Scores are not pooled.</Caption>
           </CardHeader>
           <CardContent>
             {live.length ? (
@@ -60,28 +60,28 @@ function Ledger() {
                   <thead className="text-[11px] uppercase tracking-[0.08em] text-muted">
                     <tr>
                       <th className="pb-2 font-medium">Well</th>
-                      <th className="pb-2 font-medium">Serve</th>
-                      <th className="pb-2 font-medium">Gate3</th>
-                      <th className="pb-2 font-medium">Floor</th>
-                      <th className="pb-2 font-medium">Horizon</th>
-                      <th className="pb-2 font-medium">Toe RMSE</th>
+                      <th className="pb-2 font-medium">Model</th>
+                      <th className="pb-2 font-medium">Selected</th>
+                      <th className="pb-2 font-medium">Baseline</th>
+                      <th className="pb-2 font-medium">Alert MD</th>
+                      <th className="pb-2 font-medium">RMSE</th>
                     </tr>
                   </thead>
                   <tbody className="font-mono">
                     {live.map(({ w, r }) => (
                       <tr key={w.id} className="border-t border-border">
                         <td className="py-2">{w.id}</td>
-                        <td className="py-2 text-muted">{r.selectedName}</td>
+                        <td className="py-2 text-muted">{serveLabel(r.selectedName)}</td>
                         <td className="py-2">
                           <Badge variant={r.residual.useResidual ? "ok" : "warn"}>
-                            {r.residual.useResidual ? "ACCEPT" : "REJECT"}
+                            {r.residual.useResidual ? "residual" : "baseline"}
                           </Badge>
                         </td>
                         <td className="py-2 text-muted">{r.residual.gate3.bestFloor.toFixed(2)}</td>
                         <td className="py-2">
                           {r.sheaf.horizonOnset != null ? (
                             <Badge variant="danger">
-                              MD {w.stations[r.sheaf.horizonOnset]!.md.toFixed(0)}
+                              {w.stations[r.sheaf.horizonOnset]!.md.toFixed(0)}
                             </Badge>
                           ) : (
                             <span className="text-muted">—</span>
@@ -96,22 +96,22 @@ function Ledger() {
                 </table>
               </div>
             ) : (
-              <p className="text-sm text-muted">Run the pad from Wellscape to fill the session ledger.</p>
+              <p className="text-sm text-muted">Run the pad to fill this session.</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Sealed runs</CardTitle>
-            <CardDescription>
-              {isPending ? "Resolving session…" : user ? "Your account" : "Sign in to persist certificates"}
-            </CardDescription>
+            <CardTitle>Saved runs</CardTitle>
+            <Caption id="say">
+              {isPending ? "Checking sign-in…" : user ? "Your account" : "Sign in to keep runs"}
+            </Caption>
           </CardHeader>
           <CardContent>
             {err && <p className="text-sm text-danger">{err}</p>}
             {user && runs.length === 0 && !err && (
-              <p className="text-sm text-muted">No sealed runs yet. Predict → Seal run.</p>
+              <p className="text-sm text-muted">No saved runs yet. Predict → Save run.</p>
             )}
             {runs.length > 0 && (
               <ul className="space-y-3">

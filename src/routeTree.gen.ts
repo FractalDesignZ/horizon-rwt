@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as FenceRouteImport } from './routes/fence'
+import { Route as GuideRouteImport } from './routes/guide'
 import { Route as IngestRouteImport } from './routes/ingest'
 import { Route as LedgerRouteImport } from './routes/ledger'
 import { Route as LocksRouteImport } from './routes/locks'
@@ -38,6 +39,11 @@ const CompareRoute = CompareRouteImport.update({
 const FenceRoute = FenceRouteImport.update({
   id: '/fence',
   path: '/fence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuideRoute = GuideRouteImport.update({
+  id: '/guide',
+  path: '/guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IngestRoute = IngestRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/compare': typeof CompareRoute
   '/fence': typeof FenceRoute
+  '/guide': typeof GuideRoute
   '/ingest': typeof IngestRoute
   '/ledger': typeof LedgerRoute
   '/locks': typeof LocksRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/compare': typeof CompareRoute
   '/fence': typeof FenceRoute
+  '/guide': typeof GuideRoute
   '/ingest': typeof IngestRoute
   '/ledger': typeof LedgerRoute
   '/locks': typeof LocksRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/compare': typeof CompareRoute
   '/fence': typeof FenceRoute
+  '/guide': typeof GuideRoute
   '/ingest': typeof IngestRoute
   '/ledger': typeof LedgerRoute
   '/locks': typeof LocksRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/compare'
     | '/fence'
+    | '/guide'
     | '/ingest'
     | '/ledger'
     | '/locks'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/compare'
     | '/fence'
+    | '/guide'
     | '/ingest'
     | '/ledger'
     | '/locks'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/compare'
     | '/fence'
+    | '/guide'
     | '/ingest'
     | '/ledger'
     | '/locks'
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompareRoute: typeof CompareRoute
   FenceRoute: typeof FenceRoute
+  GuideRoute: typeof GuideRoute
   IngestRoute: typeof IngestRoute
   LedgerRoute: typeof LedgerRoute
   LocksRoute: typeof LocksRoute
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/fence'
       fullPath: '/fence'
       preLoaderRoute: typeof FenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guide': {
+      id: '/guide'
+      path: '/guide'
+      fullPath: '/guide'
+      preLoaderRoute: typeof GuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ingest': {
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompareRoute: CompareRoute,
   FenceRoute: FenceRoute,
+  GuideRoute: GuideRoute,
   IngestRoute: IngestRoute,
   LedgerRoute: LedgerRoute,
   LocksRoute: LocksRoute,

@@ -45,24 +45,24 @@ export function computeLocks(result: PipelineResult, station: number): LockRepor
   const tumblers = [
     {
       id: "prior",
-      name: "Prior",
+      name: "Last known",
       value: Number.isFinite(result.priors.lastKnown) ? 1 : 0,
       locked: Number.isFinite(result.priors.lastKnown),
       note: `last ${result.priors.lastKnown.toFixed(1)}`,
     },
     {
       id: "match",
-      name: "GR match",
+      name: "GR fit",
       value: clamp(result.priors.grAgree[i] ?? 0, 0, 1),
       locked: (result.priors.grAgree[i] ?? 0) >= 0.45,
       note: `${((result.priors.grAgree[i] ?? 0) * 100).toFixed(0)}%`,
     },
     {
       id: "particle",
-      name: "Particle",
+      name: "Particles",
       value: clamp(result.priors.pfConf[i] ?? 0, 0, 1),
       locked: (result.priors.pfConf[i] ?? 0) >= 0.28,
-      note: `conf ${((result.priors.pfConf[i] ?? 0) * 100).toFixed(0)}`,
+      note: `${((result.priors.pfConf[i] ?? 0) * 100).toFixed(0)}%`,
     },
     {
       id: "neighbor",
@@ -70,22 +70,22 @@ export function computeLocks(result: PipelineResult, station: number): LockRepor
       value: clamp(result.priors.neighborOk[i] ?? 0, 0, 1),
       locked: (result.priors.neighborOk[i] ?? 0) >= 0.4,
       note: Number.isFinite(result.priors.neighborTvt[i]!)
-        ? `IDW ${result.priors.neighborTvt[i]!.toFixed(1)}`
-        : "no nb",
+        ? `TVT ${result.priors.neighborTvt[i]!.toFixed(1)}`
+        : "no neighbor",
     },
     {
       id: "gate3",
-      name: "Gate 3",
+      name: "Baseline",
       value: gateVal,
       locked: g3.accept,
-      note: g3.accept ? "ACCEPT" : `floor ${g3.bestFloorName}`,
+      note: g3.accept ? "residual wins" : `held ${g3.bestFloorName}`,
     },
     {
       id: "horizon",
-      name: "Horizon",
+      name: "Lock",
       value: clamp(result.sheaf.recoverability[i] ?? 0, 0, 1),
       locked: !(result.probability[i]?.horizon ?? false),
-      note: result.probability[i]?.horizon ? "decoupled" : "recoverable",
+      note: result.probability[i]?.horizon ? "lost lock" : "locked",
     },
   ];
   const keyFit = mean(tumblers.map((t) => t.value));

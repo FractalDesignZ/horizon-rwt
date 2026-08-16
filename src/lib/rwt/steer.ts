@@ -92,19 +92,19 @@ export function computeSteer(result: PipelineResult, station: number): SteerRepo
   let reason = `window ${windowLo.toFixed(0)}–${windowHi.toFixed(0)}`;
   if (horizonNow || mdToHorizon === 0) {
     advisory = "CUT";
-    reason = "horizon at the bit · do not trust match";
+    reason = "lost lock at the bit · do not steer on it";
   } else if (mdToHorizon != null && mdToHorizon < 80) {
     advisory = "CUT";
-    reason = `horizon in ${mdToHorizon.toFixed(0)} ft`;
+    reason = `lost lock in ${mdToHorizon.toFixed(0)} ft`;
   } else if (mdToHorizon != null && mdToHorizon < 420) {
     advisory = bitTvt < target - 1 ? "BUILD" : bitTvt > target + 1 ? "DROP" : "HOLD";
-    reason = `horizon in ${mdToHorizon.toFixed(0)} ft · stay on book`;
+    reason = `lost lock in ${mdToHorizon.toFixed(0)} ft · hold target`;
   } else if (d > 1.6 || bitTvt < windowLo) {
     advisory = "BUILD";
-    reason = `book ${target.toFixed(1)} · ${inWindow ? "walk up" : "below window"}`;
+    reason = `target ${target.toFixed(1)} · ${inWindow ? "walk up" : "below window"}`;
   } else if (d < -1.6 || bitTvt > windowHi) {
     advisory = "DROP";
-    reason = `book ${target.toFixed(1)} · ${inWindow ? "walk down" : "above window"}`;
+    reason = `target ${target.toFixed(1)} · ${inWindow ? "walk down" : "above window"}`;
   } else {
     advisory = "HOLD";
     reason = `window ${windowLo.toFixed(0)}–${windowHi.toFixed(0)} · risk ${(risk * 100).toFixed(0)}`;

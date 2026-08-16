@@ -13,6 +13,11 @@ export function IsoPad() {
       return { ix, iy };
     }),
   );
+  if (!raw.length) {
+    return (
+      <div className="grid h-64 place-items-center text-sm text-muted">No wells loaded.</div>
+    );
+  }
   const minX = Math.min(...raw.map((p) => p.ix));
   const maxX = Math.max(...raw.map((p) => p.ix));
   const minY = Math.min(...raw.map((p) => p.iy));

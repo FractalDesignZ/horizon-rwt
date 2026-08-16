@@ -82,7 +82,7 @@ export function SmithDisk({
     <svg
       viewBox="0 0 296 292"
       className="h-auto w-full max-w-[360px]"
-      aria-label="Smith chart"
+      aria-label="Bounce map"
       onClick={handle}
       role="img"
     >

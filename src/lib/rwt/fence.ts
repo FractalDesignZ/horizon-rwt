@@ -43,6 +43,20 @@ export interface WellBrief {
 }
 
 export function pickMarkers(tw: Typewell, want = 5): BookMarker[] {
+  if (tw.tops && tw.tops.length) {
+    return tw.tops.slice(0, Math.max(want, tw.tops.length)).map((t, i) => {
+      let gr = 80;
+      let bd = Infinity;
+      for (let k = 0; k < tw.tvt.length; k++) {
+        const d = Math.abs(tw.tvt[k]! - t.tvt);
+        if (d < bd) {
+          bd = d;
+          gr = tw.gr[k] ?? 80;
+        }
+      }
+      return { id: `top-${i}`, name: t.name, tvt: t.tvt, gr };
+    });
+  }
   const gr = tw.gr;
   const tvt = tw.tvt;
   const mu = mean(gr);

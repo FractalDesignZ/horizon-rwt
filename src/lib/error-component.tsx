@@ -20,10 +20,10 @@ export function AppNotFound() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-bg px-6 text-center text-fg">
       <p className="text-[11px] uppercase tracking-[0.16em] text-muted">404</p>
-      <h1 className="font-display text-3xl tracking-tight">No such horizon</h1>
+      <h1 className="font-display text-3xl tracking-tight">Nothing here</h1>
       <p className="max-w-sm text-sm text-muted">That path is not on the pad.</p>
       <Link to="/" className="mt-2 text-sm text-accent no-underline hover:opacity-80">
-        Back to wellscape
+        Back to the pad
       </Link>
     </main>
   );

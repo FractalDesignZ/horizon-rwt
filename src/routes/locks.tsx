@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { AppShell } from "@/components/app-shell";
+import { EmptyPad } from "@/components/empty-pad";
 import { LockRing } from "@/components/lock-ring";
 import { PadCycle } from "@/components/pad-cycle";
 import { PersistBarcode } from "@/components/persist-barcode";
 import { PlayBar } from "@/components/play-bar";
+import { Caption, PageLead } from "@/components/caption";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { computeLocks, computePadSheaf, padPersistence, wellPersistence } from "@/lib/rwt/cycle";
 import { useHorizon } from "@/lib/store";
 
@@ -34,18 +36,17 @@ function LocksPage() {
   const wellPH = useMemo(() => (result ? wellPersistence(result) : null), [result]);
   const padPH = useMemo(() => padPersistence(pad.wells), [pad.wells]);
 
+  if (!well) return <EmptyPad title="Gates need a well" />;
+
   return (
     <AppShell>
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">M8 · CycleSheaf</p>
-            <h1 className="font-display text-4xl tracking-tight">Locks</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted">
-              Tumblers are local constraints. The key is a global section — residual turns only
-              when enough pins align. The pad graph is a CycleSheaf; persistence replaces algebraic
-              contraction on curvature features.
-            </p>
+            <PageLead kicker="Acceptance" title="Gates" id="pins">
+              Six checks: last known, GR fit, particles, neighbor, baseline, lock. Residual
+              fires only when enough of them pass.
+            </PageLead>
           </div>
           <div className="flex flex-wrap gap-2">
             <select
@@ -68,7 +69,7 @@ function LocksPage() {
         {locks && result && well ? (
           <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric label="Key fit" value={`${(locks.keyFit * 100).toFixed(0)}`} hint={`${locks.turns} pins down`} />
+              <Metric label="Score" value={`${(locks.keyFit * 100).toFixed(0)}`} hint={`${locks.turns}/6 pass`} />
               <Metric
                 label="Pad λ₂"
                 value={
@@ -76,15 +77,15 @@ function LocksPage() {
                     ? padSheaf.algebraicConnectivity.toExponential(2)
                     : padSheaf.algebraicConnectivity.toFixed(3)
                 }
-                hint={`h⁰ ${padSheaf.kernelDim}`}
+                hint={`kernel ${padSheaf.kernelDim}`}
               />
               <Metric
                 label="Pad holonomy"
                 value={padSheaf.holonomy.toFixed(2)}
-                hint={`${padSheaf.edges.length} restriction edges`}
+                hint={`${padSheaf.edges.length} edges`}
               />
               <Metric
-                label="PH merge"
+                label="Merge"
                 value={wellPH?.mergeScale != null ? wellPH.mergeScale.toFixed(2) : "—"}
                 hint={`β₀ ${wellPH?.beta0 ?? "—"} · β₁ ${wellPH?.beta1 ?? "—"}`}
               />
@@ -93,11 +94,11 @@ function LocksPage() {
             <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
               <Card>
                 <CardHeader>
-                  <CardTitle>Tumblers</CardTitle>
-                  <CardDescription>
-                    Station MD {well.stations[Math.min(station, well.stations.length - 1)]!.md.toFixed(0)} ·
-                    {locks.fireReady ? " residual key turns" : " prior holds the cylinder"}
-                  </CardDescription>
+                  <CardTitle>Checks</CardTitle>
+                  <Caption id="pins">
+                    MD {well.stations[Math.min(station, well.stations.length - 1)]!.md.toFixed(0)} ·
+                    {locks.fireReady ? " residual ready" : " hold"}
+                  </Caption>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-4">
                   <LockRing locks={locks} />
@@ -105,7 +106,7 @@ function LocksPage() {
                     {locks.tumblers.map((t) => (
                       <li key={t.id} className="flex items-center justify-between gap-3 text-sm">
                         <span className="flex items-center gap-2">
-                          <Badge variant={t.locked ? "ok" : "warn"}>{t.locked ? "in" : "out"}</Badge>
+                          <Badge variant={t.locked ? "ok" : "warn"}>{t.locked ? "pass" : "fail"}</Badge>
                           <span>{t.name}</span>
                         </span>
                         <span className="font-mono text-xs text-muted">{t.note}</span>
@@ -117,10 +118,8 @@ function LocksPage() {
 
               <Card className="overflow-hidden p-0">
                 <CardHeader className="p-5 pb-2">
-                  <CardTitle>Pad CycleSheaf</CardTitle>
-                  <CardDescription>
-                    Stalks last-known × azimuth · edge tension from ΔTVT and twist · click a well
-                  </CardDescription>
+                  <CardTitle>Pad graph</CardTitle>
+                  <Caption id="neighbors">Edges are neighbor links. Click a well.</Caption>
                 </CardHeader>
                 <CardContent className="p-0">
                   <PadCycle sheaf={padSheaf} active={active} onSelect={setWell} />
@@ -130,8 +129,8 @@ function LocksPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Play from here</CardTitle>
-                <CardDescription>Encoded posterior walks the toe. Bias last-known without a re-run.</CardDescription>
+                <CardTitle>Playback</CardTitle>
+                <Caption id="slider">Scrub MD. Offset last known without a new run.</Caption>
               </CardHeader>
               <CardContent>
                 <PlayBar max={well.stations.length - 1} />
@@ -142,9 +141,7 @@ function LocksPage() {
               <Card className="overflow-hidden p-0">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle>Well persistence</CardTitle>
-                  <CardDescription>
-                    Rips on (E_ref, torsion, GR mismatch) · Shiab-style curvature features
-                  </CardDescription>
+                  <Caption id="pins">Long bars survive noise. Short bars die early.</Caption>
                 </CardHeader>
                 <CardContent className="p-0">
                   {wellPH && <PersistBarcode report={wellPH} />}
@@ -153,7 +150,7 @@ function LocksPage() {
               <Card className="overflow-hidden p-0">
                 <CardHeader className="p-5 pb-2">
                   <CardTitle>Pad persistence</CardTitle>
-                  <CardDescription>Rips on well centroids + last-known · H0 merge of the pad</CardDescription>
+                  <Caption id="neighbors">When wells merge as neighbor distance grows.</Caption>
                 </CardHeader>
                 <CardContent className="p-0">
                   <PersistBarcode report={padPH} />
@@ -162,7 +159,7 @@ function LocksPage() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-muted">{running ? "Computing locks…" : "Run a well to cut the key."}</p>
+          <p className="text-sm text-muted">{running ? "Evaluating gates…" : "Run a well to evaluate gates."}</p>
         )}
       </div>
     </AppShell>

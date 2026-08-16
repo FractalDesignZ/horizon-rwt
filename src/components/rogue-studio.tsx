@@ -1,14 +1,9 @@
 import { PersistBarcode } from "@/components/persist-barcode";
 import { RogueManifold } from "@/components/rogue-manifold";
+import { Caption } from "@/components/caption";
 import { Badge } from "@/components/ui/badge";
+import { REGIME_LABEL } from "@/lib/plain";
 import type { RogueFrame, RogueReport, Regime } from "@/lib/rwt/rogue";
-
-const LABELS: Record<Regime, string> = {
-  normal: "Normal",
-  "stick-slip": "Stick-slip",
-  whirl: "Whirl",
-  bounce: "Bit bounce",
-};
 
 export function RogueStudio({ report, station }: { report: RogueReport; station: number }) {
   const frame = report.frames[Math.min(station, report.frames.length - 1)]!;
@@ -20,21 +15,27 @@ export function RogueStudio({ report, station }: { report: RogueReport; station:
       <div className="flex flex-col gap-4">
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Regime</p>
-          <p className="mt-1 font-display text-3xl tracking-tight">{LABELS[frame.regime]}</p>
+          <p className="mt-1 font-display text-3xl tracking-tight">{REGIME_LABEL[frame.regime]}</p>
           <p className="mt-1 font-mono text-xs text-subtle">
-            β0 {frame.beta0} · β1 {frame.beta1} · {(frame.confidence * 100).toFixed(0)}%
+            {(frame.confidence * 100).toFixed(0)}% · β₁ {frame.beta1} · β₀ {frame.beta0}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Light on={frame.hard} label="A3.1" tone="danger" />
-            <Light on={frame.soft} label="A3.2" tone="warn" />
-            <Light on={frame.warn} label="A3.3" tone="ok" invert />
+            <Light on={frame.hard} label="Stop" tone="danger" />
+            <Light on={frame.soft} label="Ease" tone="warn" />
+            <Light on={frame.warn} label="Watch" tone="ok" invert />
+          </div>
+          <div className="mt-3">
+            <Caption id="bit">Sliding-window shape of WOB, RPM, torque, ROP.</Caption>
           </div>
         </div>
         <Experts frame={frame} />
       </div>
       <SensorStrip report={report} station={station} />
       <div className="rounded-xl border border-border bg-surface p-3">
-        <p className="mb-2 px-1 text-[11px] uppercase tracking-[0.12em] text-muted">Persistence</p>
+      <p className="mb-2 px-1 text-[11px] uppercase tracking-[0.12em] text-muted">Persistence</p>
+      <div className="mb-2 px-1">
+        <Caption id="bit">Bars that survive as the join radius grows.</Caption>
+      </div>
         <PersistBarcode
           report={{
             bars: frame.bars,
@@ -75,11 +76,12 @@ function Experts({ frame }: { frame: RogueFrame }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
       <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Experts</p>
+      <Caption id="bit">MoE weights. Output is a WOB and RPM change.</Caption>
       <ul className="mt-3 space-y-2">
         {keys.map((k) => (
           <li key={k}>
             <div className="mb-1 flex justify-between font-mono text-[11px] text-subtle">
-              <span>{LABELS[k]}</span>
+              <span>{REGIME_LABEL[k]}</span>
               <span>{(frame.experts[k] * 100).toFixed(0)}</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-elevated">

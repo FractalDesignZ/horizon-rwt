@@ -253,12 +253,12 @@ export function computeRogue(well: Well): RogueReport {
 }
 
 function advise(m: MechanicSample, regime: Regime, hard: boolean) {
-  if (hard) return { wob: Math.min(m.wob, 150), rpm: Math.min(m.rpm, 120), note: "A3.1 · pull back now" };
+  if (hard) return { wob: Math.min(m.wob, 150), rpm: Math.min(m.rpm, 120), note: "Stop. Reduce WOB and RPM." };
   if (regime === "stick-slip")
-    return { wob: m.wob - 18, rpm: m.rpm + 12, note: "unload bit · raise RPM" };
-  if (regime === "whirl") return { wob: m.wob + 4, rpm: m.rpm - 22, note: "drop RPM · damp whirl" };
-  if (regime === "bounce") return { wob: m.wob - 24, rpm: m.rpm - 6, note: "ease WOB · kill bounce" };
-  return { wob: m.wob, rpm: m.rpm, note: "hold parameters" };
+    return { wob: m.wob - 18, rpm: m.rpm + 12, note: "Lower WOB. Raise RPM." };
+  if (regime === "whirl") return { wob: m.wob + 4, rpm: m.rpm - 22, note: "Lower RPM. Kill whirl." };
+  if (regime === "bounce") return { wob: m.wob - 24, rpm: m.rpm - 6, note: "Ease WOB. Stop bounce." };
+  return { wob: m.wob, rpm: m.rpm, note: "Hold current setpoints." };
 }
 
 export { HARD, SOFT };

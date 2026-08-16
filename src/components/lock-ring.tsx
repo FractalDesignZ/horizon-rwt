@@ -7,7 +7,7 @@ export function LockRing({ locks }: { locks: LockReport }) {
   const n = locks.tumblers.length;
 
   return (
-    <svg viewBox="0 0 280 280" className="h-auto w-full max-w-[300px]" role="img" aria-label="Lock tumblers">
+    <svg viewBox="0 0 280 280" className="h-auto w-full max-w-[300px]" role="img" aria-label="Six gates">
       <rect width={280} height={280} fill="#0b0c0a" />
       <circle cx={cx} cy={cy} r={118} fill="none" stroke="#26261f" />
       <circle cx={cx} cy={cy} r={54} fill="#131411" stroke="#26261f" />
@@ -65,7 +65,7 @@ export function LockRing({ locks }: { locks: LockReport }) {
         fontSize={10}
         fontFamily="IBM Plex Mono, monospace"
       >
-        {locks.fireReady ? "KEY TURNS" : `${locks.turns}/6 PINS`}
+        {locks.fireReady ? "READY" : `${locks.turns}/6 PASS`}
       </text>
     </svg>
   );

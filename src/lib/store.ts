@@ -1,13 +1,64 @@
 import { create } from "zustand";
-import { parseAny, tableToWell } from "@/lib/rwt/ingest";
-import { runPipeline } from "@/lib/rwt/pipeline";
-import { sampleIngestText, synthesizePad } from "@/lib/rwt/synth";
+import { parseTypewellText } from "@/lib/rwt/ingest";
+import { emptyPad } from "@/lib/rwt/empty";
+import { synthesizePad } from "@/lib/rwt/synth";
+import { wrapIngest, type IngestBundle } from "@/lib/rwt/wrapper";
 import type { PadField, PipelineResult, Well } from "@/lib/rwt/types";
+import { runPipeline } from "@/lib/rwt/pipeline";
 
 let playTimer: number | null = null;
 
+export type BookKind = "empty" | "imported" | "test";
+
+const PERSIST_KEY = "horizon-session-v1";
+
+interface Persisted {
+  pad: PadField;
+  bookKind: BookKind;
+  activeWellId: string;
+  targetWellId: string;
+}
+
+function readPersisted(): Persisted | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Persisted;
+    if (!parsed?.pad?.wells?.length) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writePersisted(s: {
+  pad: PadField;
+  bookKind: BookKind;
+  activeWellId: string;
+  targetWellId: string;
+}) {
+  if (typeof window === "undefined") return;
+  try {
+    if (s.bookKind === "empty" || !s.pad.wells.length) {
+      window.localStorage.removeItem(PERSIST_KEY);
+      return;
+    }
+    const payload: Persisted = {
+      pad: s.pad,
+      bookKind: s.bookKind,
+      activeWellId: s.activeWellId,
+      targetWellId: s.targetWellId,
+    };
+    window.localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
+  } catch {
+    /* quota */
+  }
+}
+
 interface HorizonState {
   pad: PadField;
+  bookKind: BookKind;
   results: Record<string, PipelineResult>;
   activeWellId: string;
   targetWellId: string;
@@ -17,7 +68,11 @@ interface HorizonState {
   whatIf: number;
   ingestDraft: string;
   ingestError: string | null;
+  ingestBusy: boolean;
   lastFormat: string;
+  lastBundle: IngestBundle | null;
+  ingestStatus: string;
+  hydrated: boolean;
   setWell: (id: string) => void;
   setTarget: (id: string) => void;
   setStation: (i: number) => void;
@@ -25,15 +80,15 @@ interface HorizonState {
   runWell: (id?: string) => void;
   runPad: () => void;
   ingest: (text: string, name?: string) => void;
+  ingestFiles: (files: { name: string; text: string }[], opts?: { useAssistant?: boolean }) => Promise<void>;
+  ingestTypewell: (text: string, name?: string) => void;
   setIngestDraft: (t: string) => void;
-  loadSample: () => void;
+  loadTestPad: () => void;
+  clearPad: () => void;
   removeWell: (id: string) => void;
+  rehydrate: () => void;
   play: () => void;
   stopPlay: () => void;
-}
-
-function ensurePad(): PadField {
-  return synthesizePad(7);
 }
 
 function clearPlay() {
@@ -43,20 +98,38 @@ function clearPlay() {
   }
 }
 
+function applyWells(current: PadField, incoming: Well[], name = "Imported"): PadField {
+  const byId = new Map(current.wells.map((w) => [w.id, w]));
+  for (const w of incoming) byId.set(w.id, w);
+  const wells = [...byId.values()];
+  return {
+    ...current,
+    id: current.id === "empty" ? "imported" : current.id,
+    name: wells.length ? (current.id === "empty" ? name : current.name) : "No wells loaded",
+    wells,
+    typewell: incoming[0]?.typewell ?? current.typewell,
+  };
+}
+
 export const useHorizon = create<HorizonState>((set, get) => {
-  const pad = ensurePad();
+  const pad = emptyPad();
   return {
     pad,
+    bookKind: "empty",
     results: {},
-    activeWellId: pad.wells[0]!.id,
-    targetWellId: pad.wells[1]?.id ?? pad.wells[0]!.id,
+    activeWellId: "",
+    targetWellId: "",
     station: 0,
     running: false,
     playing: false,
     whatIf: 0,
     ingestDraft: "",
     ingestError: null,
-    lastFormat: "synthetic-pad",
+    ingestBusy: false,
+    lastFormat: "",
+    lastBundle: null,
+    ingestStatus: "",
+    hydrated: false,
     setWell: (id) => {
       const s = get();
       const w = s.pad.wells.find((x) => x.id === id);
@@ -81,9 +154,9 @@ export const useHorizon = create<HorizonState>((set, get) => {
       set({ running: true });
       window.setTimeout(() => {
         try {
-          const pad = get().pad.wells;
-          const target = pad.find((w) => w.id === wid) ?? well;
-          const result = runPipeline(target, pad);
+          const padWells = get().pad.wells;
+          const target = padWells.find((w) => w.id === wid) ?? well;
+          const result = runPipeline(target, padWells);
           set((s) => ({
             results: { ...s.results, [wid]: result },
             running: false,
@@ -97,7 +170,7 @@ export const useHorizon = create<HorizonState>((set, get) => {
     },
     runPad: () => {
       const state = get();
-      if (state.running) return;
+      if (state.running || !state.pad.wells.length) return;
       set({ running: true });
       const ids = state.pad.wells.map((w) => w.id);
       let i = 0;
@@ -124,54 +197,164 @@ export const useHorizon = create<HorizonState>((set, get) => {
       window.setTimeout(step, 16);
     },
     ingest: (text, name) => {
+      void get().ingestFiles([{ name: name ?? "paste.txt", text }]);
+    },
+    ingestFiles: async (files, opts) => {
+      if (get().ingestBusy) return;
+      set({ ingestBusy: true, ingestError: null, ingestStatus: "Parsing…" });
       try {
-        const table = parseAny(text);
-        if (!table.rows.length) {
-          set({ ingestError: "No numeric rows found." });
+        const bundle = await wrapIngest(files, opts);
+        if (!bundle.wells.length && !bundle.typewells.length) {
+          set({
+            ingestBusy: false,
+            lastBundle: bundle,
+            ingestError: bundle.skipped[0]?.reason ?? "No wells found in the files.",
+            ingestStatus: "",
+          });
           return;
         }
-        const well = tableToWell(table, {
-          id: `ING-${Date.now().toString(36).slice(-5)}`,
-          name: name ?? `INGEST ${table.format.toUpperCase()}`,
-          typewell: get().pad.typewell,
-        });
         set((s) => {
-          const pad: PadField = {
-            ...s.pad,
-            wells: [...s.pad.wells.filter((w) => w.id !== well.id), well],
-          };
+          let pad = s.pad;
+          if (bundle.wells.length) pad = applyWells(pad, bundle.wells);
+          if (bundle.typewells.length) {
+            const tw = bundle.typewells[0]!.tw;
+            const wid = bundle.wells[0]?.id ?? s.activeWellId;
+            pad = {
+              ...pad,
+              typewell: tw,
+              wells: pad.wells.map((w) =>
+                !wid || w.id === wid || bundle.wells.some((n) => n.id === w.id)
+                  ? { ...w, typewell: w.typewell.tvt.length ? w.typewell : tw }
+                  : w,
+              ),
+            };
+          }
+          const nextId = bundle.wells[0]?.id ?? s.activeWellId;
+          const nextWell = pad.wells.find((w) => w.id === nextId);
           return {
             pad,
-            activeWellId: well.id,
-            station: Math.floor(well.stations.length * 0.62),
+            bookKind: "imported" as const,
+            activeWellId: nextId,
+            targetWellId: pad.wells.find((w) => w.id !== nextId)?.id ?? nextId,
+            station: nextWell ? Math.floor(nextWell.stations.length * 0.62) : 0,
             ingestError: null,
-            lastFormat: table.format,
-            results: { ...s.results },
+            ingestBusy: false,
+            lastFormat: bundle.plans.map((p) => p.format).join(", "),
+            lastBundle: bundle,
+            ingestStatus: `Imported ${bundle.wells.length} well${bundle.wells.length === 1 ? "" : "s"}${
+              bundle.typewells.length ? `, ${bundle.typewells.length} type well` : ""
+            }.`,
           };
         });
-        get().runWell(well.id);
+        for (const w of bundle.wells) get().runWell(w.id);
       } catch (e) {
-        set({ ingestError: e instanceof Error ? e.message : "Parse failed" });
+        set({
+          ingestBusy: false,
+          ingestError: e instanceof Error ? e.message : "Parse failed",
+          ingestStatus: "",
+        });
+      }
+    },
+    ingestTypewell: (text, name) => {
+      try {
+        const tw = parseTypewellText(text);
+        if (tw.tvt.length < 8) {
+          set({ ingestError: "Type well needs TVT and GR columns." });
+          return;
+        }
+        const wid = get().activeWellId;
+        set((s) => {
+          const wells = s.pad.wells.map((w) =>
+            !wid || w.id === wid ? { ...w, typewell: tw } : w,
+          );
+          return {
+            pad: { ...s.pad, wells, typewell: tw },
+            ingestError: null,
+            lastFormat: name ?? "typewell",
+            results: wid
+              ? Object.fromEntries(Object.entries(s.results).filter(([k]) => k !== wid))
+              : s.results,
+          };
+        });
+        if (wid) get().runWell(wid);
+      } catch (e) {
+        set({ ingestError: e instanceof Error ? e.message : "Type well parse failed" });
       }
     },
     setIngestDraft: (t) => set({ ingestDraft: t, ingestError: null }),
-    loadSample: () => {
-      const w = get().pad.wells[0];
-      if (!w) return;
-      set({ ingestDraft: sampleIngestText(w), lastFormat: "data-index" });
+    loadTestPad: () => {
+      clearPlay();
+      const next = synthesizePad(7);
+      set({
+        pad: next,
+        bookKind: "test",
+        results: {},
+        activeWellId: next.wells[0]?.id ?? "",
+        targetWellId: next.wells[1]?.id ?? next.wells[0]?.id ?? "",
+        station: Math.floor((next.wells[0]?.stations.length ?? 1) * 0.62),
+        playing: false,
+        lastFormat: "test-generated",
+        ingestError: null,
+        lastBundle: null,
+        ingestStatus: "Test wells generated. Not field data.",
+      });
+    },
+    clearPad: () => {
+      clearPlay();
+      set({
+        pad: emptyPad(),
+        bookKind: "empty",
+        results: {},
+        activeWellId: "",
+        targetWellId: "",
+        station: 0,
+        playing: false,
+        lastFormat: "",
+        ingestError: null,
+        lastBundle: null,
+        ingestStatus: "",
+      });
     },
     removeWell: (id) => {
       set((s) => {
         const wells = s.pad.wells.filter((w) => w.id !== id);
-        if (!wells.length) return s;
-        const next = s.activeWellId === id ? wells[0]!.id : s.activeWellId;
         const { [id]: _drop, ...rest } = s.results;
         void _drop;
+        const next = s.activeWellId === id ? (wells[0]?.id ?? "") : s.activeWellId;
         return {
-          pad: { ...s.pad, wells },
+          pad: {
+            ...s.pad,
+            wells,
+            name: wells.length ? s.pad.name : "No wells loaded",
+            id: wells.length ? s.pad.id : "empty",
+          },
+          bookKind: wells.length ? s.bookKind : "empty",
           activeWellId: next,
+          targetWellId: wells.find((w) => w.id !== next)?.id ?? next,
           results: rest,
         };
+      });
+    },
+    rehydrate: () => {
+      if (get().hydrated) return;
+      const saved = readPersisted();
+      if (!saved) {
+        set({ hydrated: true });
+        return;
+      }
+      const well = saved.pad.wells.find((w) => w.id === saved.activeWellId) ?? saved.pad.wells[0];
+      set({
+        pad: saved.pad,
+        bookKind: saved.bookKind,
+        activeWellId: well?.id ?? "",
+        targetWellId:
+          saved.pad.wells.find((w) => w.id === saved.targetWellId && w.id !== well?.id)?.id ??
+          saved.pad.wells.find((w) => w.id !== well?.id)?.id ??
+          well?.id ??
+          "",
+        station: well ? Math.floor(well.stations.length * 0.62) : 0,
+        hydrated: true,
+        results: {},
       });
     },
     play: () => {
@@ -209,4 +392,11 @@ export const useHorizon = create<HorizonState>((set, get) => {
 export function activeWell(): Well | undefined {
   const s = useHorizon.getState();
   return s.pad.wells.find((w) => w.id === s.activeWellId);
+}
+
+if (typeof window !== "undefined") {
+  useHorizon.subscribe((s) => {
+    if (!s.hydrated) return;
+    writePersisted(s);
+  });
 }

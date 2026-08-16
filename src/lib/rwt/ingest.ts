@@ -194,12 +194,12 @@ export function tableToWell(
   table: ParsedTable,
   opts?: { id?: string; name?: string; typewell?: Typewell },
 ): Well {
-  const n = table.rows.length;
-  const md = col(table, "MD") ?? linspace(0, Math.max(n - 1, 1), n);
-  const x = col(table, "X") ?? md.map((v, i) => (Number.isFinite(v) ? v : i));
-  const y = col(table, "Y") ?? md.map(() => 0);
-  const z = col(table, "Z") ?? md.map((_, i) => -i * 2);
-  const gr = col(table, "GR") ?? md.map(() => NaN);
+  const n0 = table.rows.length;
+  const md0 = col(table, "MD") ?? linspace(0, Math.max(n0 - 1, 1), n0);
+  const x0 = col(table, "X") ?? md0.map((v, i) => (Number.isFinite(v) ? v : i));
+  const y0 = col(table, "Y") ?? md0.map(() => 0);
+  const z0 = col(table, "Z") ?? md0.map((_, i) => -i * 2);
+  const gr0 = col(table, "GR") ?? md0.map(() => NaN);
   const tvtCol = col(table, "TVT");
   const tvtInCol = col(table, "TVT_input");
   const extraNames = table.mapped.filter(
@@ -209,53 +209,54 @@ export function tableToWell(
       !h.startsWith("__leak_"),
   );
 
-  const stations: Station[] = [];
-  for (let i = 0; i < n; i++) {
+  const hasTvtIn = Boolean(tvtInCol?.some((v) => Number.isFinite(v)));
+
+  const raw: Station[] = [];
+  for (let i = 0; i < n0; i++) {
     const tvt = tvtCol?.[i];
     const tvtIn = tvtInCol?.[i];
-    const known = Number.isFinite(tvtIn) || Number.isFinite(tvt);
+    const labeled = hasTvtIn
+      ? Number.isFinite(tvtIn)
+      : Number.isFinite(tvtIn) || Number.isFinite(tvt);
     const extra: Record<string, number> = {};
     for (const name of extraNames) {
       const idx = table.mapped.indexOf(name);
       extra[String(name)] = table.rows[i]?.[idx] ?? NaN;
     }
-    for (const ch of ["RES", "NPHI", "RHOB", "CALI", "DT", "PE"] as const) {
+    for (const ch of ["RES", "NPHI", "RHOB", "CALI", "DT", "PE", "WOB", "RPM", "TRQ", "ROP"] as const) {
       const c = col(table, ch);
       if (c) extra[ch] = c[i] ?? NaN;
     }
-    stations.push({
-      md: Number.isFinite(md[i]) ? md[i]! : i,
-      x: Number.isFinite(x[i]) ? x[i]! : i,
-      y: Number.isFinite(y[i]) ? y[i]! : 0,
-      z: Number.isFinite(z[i]) ? z[i]! : 0,
-      gr: Number.isFinite(gr[i]) && (gr[i] as number) > -50 ? gr[i]! : NaN,
-      tvt: Number.isFinite(tvt) ? tvt! : null,
-      tvtInput: Number.isFinite(tvtIn) ? tvtIn! : Number.isFinite(tvt) ? tvt! : null,
-      isPredict: !known,
+    const truth = Number.isFinite(tvt) ? tvt : Number.isFinite(tvtIn) ? tvtIn : undefined;
+    raw.push({
+      md: Number.isFinite(md0[i]) ? md0[i]! : i,
+      x: Number.isFinite(x0[i]) ? x0[i]! : i,
+      y: Number.isFinite(y0[i]) ? y0[i]! : 0,
+      z: Number.isFinite(z0[i]) ? z0[i]! : 0,
+      gr: Number.isFinite(gr0[i]) && (gr0[i] as number) > -50 ? gr0[i]! : NaN,
+      tvt: labeled && Number.isFinite(tvtIn) ? tvtIn! : labeled && Number.isFinite(tvt) ? tvt! : null,
+      tvtInput: labeled && Number.isFinite(tvtIn) ? tvtIn! : labeled && Number.isFinite(tvt) ? tvt! : null,
+      isPredict: !labeled,
+      tvtTrue: truth,
       extra,
     });
   }
 
-  // If every TVT is present, treat last 38% as predict zone (middle-out demo)
-  const labeled = stations.filter((s) => s.tvt != null || s.tvtInput != null).length;
-  if (labeled === n && n > 8) {
-    const ps = Math.floor(n * 0.62);
-    for (let i = ps; i < n; i++) {
-      const s = stations[i]!;
-      s.tvtTrue = s.tvt ?? s.tvtInput ?? undefined;
+  // If every TVT is present and there was no sparse TVT_input, hide last 38%.
+  const labeledN = raw.filter((s) => !s.isPredict).length;
+  if (!hasTvtIn && labeledN === n0 && n0 > 8) {
+    const ps = Math.floor(n0 * 0.62);
+    for (let i = ps; i < n0; i++) {
+      const s = raw[i]!;
+      s.tvtTrue = s.tvt ?? s.tvtInput ?? s.tvtTrue;
       s.tvt = null;
       s.tvtInput = null;
       s.isPredict = true;
     }
-  } else {
-    for (const s of stations) {
-      if (s.isPredict && (s.tvt != null || s.tvtInput != null)) {
-        s.tvtTrue = s.tvt ?? s.tvtInput ?? undefined;
-        s.tvt = null;
-        s.tvtInput = null;
-      }
-    }
   }
+
+  fillGrGaps(raw);
+  const stations = downsampleStations(raw, 400);
 
   const typewell =
     opts?.typewell ?? inferTypewell(stations, col(table, "TVT") ?? col(table, "TVT_input"));
@@ -277,6 +278,110 @@ export function tableToWell(
   };
 }
 
+function fillGrGaps(stations: Station[]) {
+  let last = NaN;
+  for (const s of stations) {
+    if (Number.isFinite(s.gr)) last = s.gr;
+    else if (Number.isFinite(last)) s.gr = last;
+  }
+  let next = NaN;
+  for (let i = stations.length - 1; i >= 0; i--) {
+    const s = stations[i]!;
+    if (Number.isFinite(s.gr)) next = s.gr;
+    else if (Number.isFinite(next)) s.gr = next;
+  }
+}
+
+export function downsampleStations(stations: Station[], target = 400): Station[] {
+  const n = stations.length;
+  if (n <= target) return stations;
+  let lastKnown = 0;
+  for (let i = 0; i < n; i++) if (!stations[i]!.isPredict) lastKnown = i;
+  const must = new Set([0, n - 1, lastKnown, Math.min(n - 1, lastKnown + 1)]);
+  const stride = n / (target - 1);
+  const idx = new Set(must);
+  for (let k = 0; k < n; k += stride) idx.add(Math.min(n - 1, Math.round(k)));
+  const lo = Math.max(0, lastKnown - 16);
+  const hi = Math.min(n - 1, lastKnown + 28);
+  const step = Math.max(1, Math.floor((hi - lo) / 20));
+  for (let i = lo; i <= hi; i += step) idx.add(i);
+  return [...idx].sort((a, b) => a - b).map((i) => stations[i]!);
+}
+
+export function looksLikeTypewell(table: ParsedTable) {
+  const hasTvt = table.mapped.includes("TVT");
+  const hasGr = table.mapped.includes("GR");
+  const hasMd = table.mapped.includes("MD");
+  const hasX = table.mapped.includes("X");
+  return hasTvt && hasGr && !hasMd && !hasX && table.rows.length >= 8;
+}
+
+export function parseTypewell(table: ParsedTable): Typewell {
+  const tvtCol = col(table, "TVT") ?? [];
+  const grCol = col(table, "GR") ?? [];
+  const geoIdx = table.headers.findIndex((h) => /geol|formation|bed|top/i.test(h));
+  const tvt: number[] = [];
+  const gr: number[] = [];
+  const tops: { name: string; tvt: number }[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < table.rows.length; i++) {
+    const t = tvtCol[i];
+    if (!Number.isFinite(t)) continue;
+    tvt.push(t!);
+    const g = grCol[i];
+    gr.push(Number.isFinite(g) ? g! : NaN);
+    if (geoIdx >= 0) {
+      const raw = table.rows[i]?.[geoIdx];
+      // geology is numeric-parsed; recover from original is lost. skip if numeric.
+      void raw;
+    }
+  }
+  // recover geology names from headers-only tables via mapped extras is not possible
+  // after numeric parse — tops stay empty unless inferTypewell tops are supplied.
+  void tops;
+  void seen;
+  return { tvt, gr };
+}
+
+export function parseTypewellText(text: string): Typewell {
+  const raw = text.replace(/^\uFEFF/, "").trim();
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#") && !l.startsWith("//"));
+  if (!lines.length) return { tvt: [], gr: [] };
+  const first = splitLine(lines[0]!);
+  const numeric = first.filter((c) => c !== "" && Number.isFinite(Number(c))).length;
+  const headered = numeric < first.length * 0.6;
+  const headers = headered ? first.map((h) => normalizeHeader(h)) : [];
+  const start = headered ? 1 : 0;
+  const tvtIdx = headers.findIndex((h) => /^(tvt|tvdss|ss)$/i.test(h));
+  const grIdx = headers.findIndex((h) => /^(gr|gamma|gammaray)$/i.test(h));
+  const geoIdx = headers.findIndex((h) => /geol|formation|bed|top/i.test(h));
+  const tCol = tvtIdx >= 0 ? tvtIdx : 0;
+  const gCol = grIdx >= 0 ? grIdx : 1;
+  const tvt: number[] = [];
+  const gr: number[] = [];
+  const tops: { name: string; tvt: number }[] = [];
+  const seen = new Set<string>();
+  for (let i = start; i < lines.length; i++) {
+    const cells = splitLine(lines[i]!);
+    const t = parseNumber(cells[tCol] ?? "");
+    if (!Number.isFinite(t)) continue;
+    const g = parseNumber(cells[gCol] ?? "");
+    tvt.push(t);
+    gr.push(g);
+    if (geoIdx >= 0) {
+      const name = (cells[geoIdx] ?? "").trim();
+      if (name && !seen.has(name) && !Number.isFinite(Number(name))) {
+        seen.add(name);
+        tops.push({ name, tvt: t });
+      }
+    }
+  }
+  return { tvt, gr, tops: tops.length ? tops : undefined };
+}
+
 function inferTypewell(stations: Station[], tvtHint: number[] | null): Typewell {
   const pairs: { t: number; g: number }[] = [];
   for (let i = 0; i < stations.length; i++) {
@@ -285,9 +390,7 @@ function inferTypewell(stations: Station[], tvtHint: number[] | null): Typewell 
     if (t != null && Number.isFinite(t) && Number.isFinite(g)) pairs.push({ t, g });
   }
   if (pairs.length < 8) {
-    const tvt = linspace(40, 220, 180);
-    const gr = tvt.map((t) => 55 + 32 * Math.sin(t / 14) + 12 * Math.sin(t / 6));
-    return { tvt, gr };
+    return { tvt: [], gr: [] };
   }
   pairs.sort((a, b) => a.t - b.t);
   const tvt = pairs.map((p) => p.t);

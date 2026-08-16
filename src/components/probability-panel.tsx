@@ -6,17 +6,19 @@ export function ProbabilityPanel({ frame }: { frame: ProbabilityFrame }) {
     <div>
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Outcome mass</p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Mode TVT</p>
           <p className="font-mono text-2xl tabular-nums text-fg">{frame.mode.toFixed(2)}</p>
-          <p className="text-xs text-muted">mode TVT · σ {frame.std.toFixed(2)} · H {frame.entropy.toFixed(2)}</p>
+          <p className="text-xs text-muted">
+            σ {frame.std.toFixed(2)} · H {frame.entropy.toFixed(2)}
+          </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Horizon</p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted">Alert risk</p>
           <p className="font-mono text-lg tabular-nums text-fg">
             {(frame.horizonScore * 100).toFixed(0)}
             <span className="text-sm text-muted"> /100</span>
           </p>
-          <p className="text-xs text-muted">{frame.horizon ? "local decoupling" : "recoverable"}</p>
+          <p className="text-xs text-muted">{frame.horizon ? "lost lock" : "locked"}</p>
         </div>
       </div>
       <div className="flex h-28 items-end gap-px">
